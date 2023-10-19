@@ -1,0 +1,53 @@
+{
+  "_connector:execute": {
+    "_code": [
+      "!Begin loop over blocks",
+      "nullify(Uin)",
+      "@M iter_level_begin(LEAF,.false.,lev,blkLimits,blkLimitsGC,deltas)",
+      "   @M hy_DIR_TARGET_enter_data(to, [Uin])",
+      "",
+      "   if (hy_geometry /= CARTESIAN) then",
+      "      @M hy_fill_geom",
+      "      @M hy_DIR_TARGET_enter_data(to, [hy_fareaX, hy_fareaY, hy_fareaZ, hy_cvol])",
+      "      @M hy_DIR_TARGET_enter_data(to, [hy_xCenter, hy_xLeft, hy_xRight])",
+      "      @M hy_DIR_TARGET_enter_data(to, [hy_yCenter, hy_yLeft, hy_yRight])",
+      "      @M hy_DIR_TARGET_enter_data(to, [hy_zCenter])",
+      "   endif",
+      "",
+      "   xLo = blkLimits(LOW,IAXIS); xHi = blkLimits(HIGH,IAXIS)",
+      "   yLo = blkLimits(LOW,JAXIS); yHi = blkLimits(HIGH,JAXIS)",
+      "   zLo = blkLimits(LOW,KAXIS); zHi = blkLimits(HIGH,KAXIS)",
+      "",
+      "   @M hy_map_tmp_states",
+      "   @M hy_map_scr_ptrs",
+      "   @M hy_DIR_TARGET_enter_data(alloc, [hy_starState, hy_tmpState])",
+      "   @M hy_DIR_TARGET_enter_data(alloc, [hy_flx, hy_fly, hy_flz])",
+      "   @M hy_DIR_TARGET_enter_data(alloc, [hy_grav, hy_flat3d])",
+      "",
+      "   @M hy_DIR_TARGET_update_to([deltas, grownLimits, blkLimits, blkLimitsGC, limits])",
+      "",
+      {
+        "_param:__indent__": 1,
+        "_link:execute": []
+      },
+
+      "   if (hy_geometry /= CARTESIAN) then",
+      "      @M hy_DIR_TARGET_exit_data(release, [hy_fareaX, hy_fareaY, hy_fareaZ, hy_cvol])",
+      "      @M hy_DIR_TARGET_exit_data(release, [hy_xCenter, hy_xLeft, hy_xRight])",
+      "      @M hy_DIR_TARGET_exit_data(release, [hy_yCenter, hy_yLeft, hy_yRight])",
+      "      @M hy_DIR_TARGET_exit_data(release, [hy_zCenter])",
+      "      @M hy_release_geom",
+      "   end if",
+      "",
+      "   @M hy_DIR_TARGET_exit_data(release, [hy_starState, hy_tmpState])",
+      "   @M hy_DIR_TARGET_exit_data(release, [hy_flx, hy_fly, hy_flz])",
+      "   @M hy_DIR_TARGET_exit_data(release, [hy_flat3d, hy_grav])",
+      "   @M hy_release_tmp_states",
+      "   @M hy_release_scr_ptrs",
+      "   @M hy_DIR_TARGET_exit_data(release, [Uin])",
+      "",
+      "@M iter_end    ! end block loop"
+    ]
+  },
+  "_param:__type__": ".f90"
+}

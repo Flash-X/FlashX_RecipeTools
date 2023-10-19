@@ -1,0 +1,56 @@
+[project]
+name =  "FlashX_RecipeTools"
+authors = [
+    {name = "Youngjun Lee", email = "leey@anl.gov"},
+    {name = "Jared O’Neal", email = "joneal@anl.gov"}
+]
+description = "Recipe Tools for Flash-X"
+readme = "README.md"
+classifiers = [
+]
+requires-python = ">=3.08"
+dependencies = [
+    "Code-Generation-Toolkit@git+https://github.com/johannrudi/cg-kit.git"
+]
+dynamic = ["version"]
+
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project.urls]
+Documentation = "https://flash-x.org"
+
+[tool.black]
+line-length = 120
+fast = true
+
+[tool.ruff]
+line-length = 120
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+

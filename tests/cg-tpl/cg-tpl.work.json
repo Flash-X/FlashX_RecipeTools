@@ -1,0 +1,10 @@
+{
+  "_param:functionName": "defaultFunctionName",
+  "_param:functionArgs": "defaultFunctionArgs",
+  "_connector:execute": {
+    "_code": [
+      "call _param:functionName(_param:functionArgs)"
+    ]
+  },
+  "_param:__type__": ".f90"
+}

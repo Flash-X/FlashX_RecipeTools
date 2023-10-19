@@ -1,0 +1,17 @@
+{
+  "_connector:execute": {
+    "_code": [
+      "!Begin loop over stages",
+      "do stage = 1, last_stage",
+      "   rk_coeffs = hy_coeffArray(stage,:)",
+      {
+        "_param:__indent__": 1,
+        "_link:execute": []
+      },
+      "end do   ! stage",
+      "! store the output",
+      "@M hy_updateState"
+    ]
+  },
+  "_param:__type__": ".f90"
+}

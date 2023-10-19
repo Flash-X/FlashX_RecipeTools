@@ -1,0 +1,26 @@
+{
+  "_connector:execute": {
+    "_code": [
+      "!Begin loop over blocks",
+      "nullify(Uin)",
+      "@M iter_all_begin(LEAF,.false.,blkLimits,blkLimitsGC,deltas)",
+      "",
+      "   @M hy_mapFluxBuf",
+      "   if (hy_geometry /= CARTESIAN) then",
+      "      @M hy_fill_geom",
+      "   endif",
+      "",
+      {
+        "_param:__indent__": 1,
+        "_link:execute": []
+      },
+      "   if (hy_geometry /= CARTESIAN) then",
+      "      @M hy_release_geom",
+      "   end if",
+      "",
+      "   @M hy_nullFluxBuf",
+      "@M iter_end    ! end block loop"
+    ]
+  },
+  "_param:__type__": ".f90"
+}
