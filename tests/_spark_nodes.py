@@ -171,3 +171,46 @@ class spark_paramesh_tele_nodes(spark_nodes):
                 "&\n dt", "isFlux=.false.",
             ],
         )
+
+
+class spark_paramesh_nontele_nodes(spark_paramesh_tele_nodes):
+
+    def __init__(self):
+
+        super().__init__()
+
+        # overrides
+        self.shockDet = fr.WorkNode(
+            name="hy_rk_shockDetect",
+            args=["Uin", "blkLimitsGC", "hy_tiny"],
+            startswith="if (stage==1) then",
+            endswith="endif"
+        )
+        self.getFluxCorr_block = fr.WorkNode(
+            name="Grid_getFluxCorrData_block",
+            args=[
+                "tileDesc",
+                "&\n hy_fluxBufX, hy_fluxBufY, hy_fluxBufZ",
+                "&\n blkLimits(LOW,:)",
+                "&\n isFluxDensity=(/.false./)",
+            ],
+        )
+        self.corrSoln = fr.WorkNode(
+            name="hy_rk_correctFluxes",
+            args=[
+                "Uin", "blkLimits",
+                "&\n hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ",
+                "&\n deltas", "hy_fareaX", "hy_fareaY", "hy_fareaZ", "hy_cvol", "hy_xCenter",
+                "&\n hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
+                "&\n hy_geometry",
+                "&\n hy_smallE", "hy_smalldens",
+                "&\n dt", "isFlux=.true.",
+            ],
+        )
+
+        # new nodes
+        self.saveSoln = fr.SetupNode(
+            name="saveSoln",
+            tpl="cg-tpl.nontele_saveSoln.F90"
+        )
+

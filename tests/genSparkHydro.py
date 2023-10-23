@@ -100,6 +100,46 @@ def pm_tele(recipe, root):
     return recipe
 
 
+def pm_nontele(recipe, root):
+    from _spark_nodes import spark_paramesh_nontele_nodes
+
+    n = spark_paramesh_nontele_nodes()
+
+    _stageBegin = recipe.add_item(n.stageBegin, invoke_after=root)
+    _fillGC = recipe.add_item(n.fillGC, invoke_after=_stageBegin)
+    _blockBegin = recipe.add_item(n.blockBegin, invoke_after=_fillGC)
+
+    _shockDet = recipe.add_item(n.shockDet, invoke_after=_blockBegin)
+    _initSoln = recipe.add_item(n.initSoln, invoke_after=_blockBegin)
+    _permLims = recipe.add_item(n.permLims, invoke_after=_blockBegin)
+
+    _gravAccel = recipe.add_item(n.gravAccel, invoke_after=_permLims)
+    _calcLims = recipe.add_item(n.calcLims, invoke_after=_gravAccel)
+    _getFlat = recipe.add_item(n.getFlat, invoke_after=_calcLims)
+    _getFlux = recipe.add_item(n.getFlux, invoke_after=_getFlat)
+    _saveFluxBuf = recipe.add_item(n.saveFluxBuf, invoke_after=_getFlux)
+    _updSoln = recipe.add_item(n.updSoln, invoke_after=_getFlux)
+    _reAbund = recipe.add_item(n.reAbund, invoke_after=_updSoln)
+    _doEos = recipe.add_item(n.doEos, invoke_after=_reAbund)
+    _saveSoln = recipe.add_item(n.saveSoln, invoke_after=_doEos)
+
+    _blockEnd = recipe.add_item(n.blockEnd, invoke_after=_saveSoln)
+    _stageEnd = recipe.add_item(n.stageEnd, invoke_after=_blockEnd)
+
+
+    # TODO: missing if(hy_fluxCorrect) here
+    _commFluxes = recipe.add_item(n.commFluxes, invoke_after=_blockEnd)
+    # second blocks
+    _blockBegin2 = recipe.add_item(n.blockBegin2, invoke_after=_commFluxes)
+    _getFluxCorr_block = recipe.add_item(n.getFluxCorr_block, invoke_after=_blockBegin2)
+    _corrSoln = recipe.add_item(n.corrSoln, invoke_after=_getFluxCorr_block)
+    _blockEnd2 = recipe.add_item(n.blockEnd2, invoke_after=_corrSoln)
+    # end second blocks
+
+
+    return recipe
+
+
 def main(variant):
     # create empty recipe
     recipe = fr.Recipe(tpl="cg-tpl.Hydro.F90")
@@ -108,6 +148,8 @@ def main(variant):
         recipe = amrex_tele(recipe, recipe.root)
     elif variant == "pm_tele":
         recipe = pm_tele(recipe, recipe.root)
+    elif variant == "pm_nontele":
+        recipe = pm_nontele(recipe, recipe.root)
     else:
         raise ValueError("invalid variant")
 
@@ -156,7 +198,7 @@ def main(variant):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("variant", type=str, choices=["amrex_tele", "pm_tele"])
+    parser.add_argument("variant", type=str, choices=["amrex_tele", "pm_tele", "pm_nontele"])
     args = parser.parse_args()
 
     main(args.variant)
