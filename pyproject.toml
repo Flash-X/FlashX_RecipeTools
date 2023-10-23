@@ -2,7 +2,8 @@
 name =  "FlashX_RecipeTools"
 authors = [
     {name = "Youngjun Lee", email = "leey@anl.gov"},
-    {name = "Jared O’Neal", email = "joneal@anl.gov"}
+    {name = "Jared O’Neal", email = "joneal@anl.gov"},
+    {name = "Johann Rudi", email = "work@johannrudi.com"}
 ]
 description = "Recipe Tools for Flash-X"
 readme = "README.md"
