@@ -160,6 +160,9 @@ def _encloseConnector(tree, startswith, endswith):
     assert isinstance(endswith, str), type(endswith)
     assert "_connector:execute" in tree.keys()
 
+    if not startswith.strip() and not endswith.strip():
+        return tree
+
     tree = deepcopy(tree)
 
     execute = tree["_connector:execute"]
