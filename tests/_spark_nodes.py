@@ -173,13 +173,28 @@ class spark_paramesh_tele_nodes(spark_nodes):
         )
 
 
-class spark_paramesh_nontele_nodes(spark_paramesh_tele_nodes):
+class spark_paramesh_nontele_nodes(spark_nodes):
 
     def __init__(self):
 
         super().__init__()
 
-        # overrides
+        self.blockBegin, self.blockEnd = fr.ConstructBeginEndNodes(
+            name="block", tpl="cg-tpl.do_blocks.json"
+        )
+        self.blockBegin2, self.blockEnd2 = fr.ConstructBeginEndNodes(
+            name="block2", tpl="cg-tpl.do_blocks2.json"
+        )
+
+        self.commFluxes = fr.SetupNode(
+            name="commFluxes",
+            tpl="cg-tpl.pm4_communicateFluxes.F90"
+        )
+        self.saveSoln = fr.SetupNode(
+            name="saveSoln",
+            tpl="cg-tpl.nontele_saveSoln.F90"
+        )
+
         self.shockDet = fr.WorkNode(
             name="hy_rk_shockDetect",
             args=["Uin", "blkLimitsGC", "hy_tiny"],
@@ -208,9 +223,4 @@ class spark_paramesh_nontele_nodes(spark_paramesh_tele_nodes):
             ],
         )
 
-        # new nodes
-        self.saveSoln = fr.SetupNode(
-            name="saveSoln",
-            tpl="cg-tpl.nontele_saveSoln.F90"
-        )
 
