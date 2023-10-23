@@ -1,4 +1,5 @@
 from pathlib import Path
+from copy import deepcopy
 
 from cgkit.cflow.controller import (
     AbstractControllerNode,
@@ -158,6 +159,8 @@ def _encloseConnector(tree, startswith, endswith):
     assert isinstance(startswith, str), type(startswith)
     assert isinstance(endswith, str), type(endswith)
     assert "_connector:execute" in tree.keys()
+
+    tree = deepcopy(tree)
 
     execute = tree["_connector:execute"]
     if startswith.strip():
