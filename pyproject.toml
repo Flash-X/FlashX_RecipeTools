@@ -10,7 +10,7 @@ classifiers = [
 ]
 requires-python = ">=3.08"
 dependencies = [
-    "Code-Generation-Toolkit@git+https://github.com/johannrudi/cg-kit.git"
+    "Code-Generation-Toolkit@git+https://github.com/ylee88/cg-kit.git"
 ]
 dynamic = ["version"]
 
