@@ -4,19 +4,31 @@ from cgkit.cflow.node import (AbstractNode,
                               ClusterEndNode,
                               PlainCodeNode)
 
+class WorkNode(WorkNode):
+    def __init__(self, startswith="", endswith="", **kwargs):
+        super().__init__(**kwargs)
+        self.startswith = startswith
+        self.endswith = endswith
+
+
+
 class SetupNode(PlainCodeNode):
-    def __init__(self, name, tpl, **kwargs):
+    def __init__(self, name, tpl, startswith="", endswith="", **kwargs):
         super().__init__(nodeType="SetupNode", **kwargs)
         assert isinstance(name, str), type(name)
         self.name = name
         self.tpl = tpl
+        self.startswith = startswith
+        self.endswith = endswith
 
 
 class genericBeginNode(ClusterBeginNode):
-    def __init__(self, name, tpl):
+    def __init__(self, name, tpl, startswith="", endswith=""):
         super().__init__(nodeType="BeginNode")
         self.name = name
         self.tpl = tpl
+        self.startswith = startswith
+        self.endswith = endswith
         self.returnStackKey = ""
 
 

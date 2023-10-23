@@ -5,8 +5,8 @@ from .nodes import genericBeginNode, genericEndNode
 from .constants import VERBOSE_DEFAULT, DEVICE_KEY, KEEP_KEY
 
 
-def ConstructBeginEndNodes(name, tpl):
-    beginNode = genericBeginNode(name, tpl)
+def ConstructBeginEndNodes(name, tpl, startswith="", endswith=""):
+    beginNode = genericBeginNode(name, tpl, startswith, endswith)
     endNode = genericEndNode(name, beginNode)
     beginNode.appendEndNode(endNode)
 

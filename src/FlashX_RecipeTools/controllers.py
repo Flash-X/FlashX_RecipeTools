@@ -152,6 +152,21 @@ def _insertConnectors(ctrParseGraph, tree, verbose=False, verbose_prefix="[_inse
     return CtrRet.SUCCESS, pathList
 
 
+def _encloseConnector(tree, startswith, endswith):
+
+    # TODO: other (multiple) connectors?
+    assert isinstance(startswith, str), type(startswith)
+    assert isinstance(endswith, str), type(endswith)
+    assert "_connector:execute" in tree.keys()
+
+    execute = tree["_connector:execute"]
+    if startswith.strip():
+        execute["_code"].insert(0, startswith)
+    if endswith.strip():
+        execute["_code"].append(endswith)
+
+    return tree
+
 class Ctr_ParseGraph(AbstractControllerGraph):
     def __init__(self, templatePath="cg-tpl", indentSpace=" " * 3, verbose=VERBOSE_DEFAULT):
         super().__init__(controllerType="view", verbose=verbose, verbose_prefix="[Ctr_ParseGraph]")
@@ -280,6 +295,8 @@ class Ctr_ParseNode(AbstractControllerNode):
             print(self.verbose_prefix, f"Parse code of node type={workNode.type}, fnName={fnName}, fnArgs=({fnArgs})")
         tree_work["_param:functionName"] = fnName
         tree_work["_param:functionArgs"] = fnArgs
+        # enclosing execute connector
+        tree_work = _encloseConnector(tree_work, workNode.startswith, workNode.endswith)
         # insert code into source tree
         ctrret, pathInfo = _insertConnectors(self._ctrParseGraph, tree_work, self.verbose, self.verbose_prefix)
         return ctrret
@@ -291,6 +308,7 @@ class Ctr_ParseNode(AbstractControllerNode):
             print(self.verbose_prefix, f"Parse code of node type={beginNode.type}, name={beginNode.name}")
         tree_begin = srctree.load(self._templatePath / beginNode.tpl)
         assert 0 < len(srctree.search_connectors(tree_begin))
+        tree_begin = _encloseConnector(tree_begin, beginNode.startswith, beginNode.endswith)
         ctrret, pathInfo = _insertConnectors(self._ctrParseGraph, tree_begin, self.verbose, self.verbose_prefix)
         returnStackKey = beginNode.name
         i = 0
@@ -334,6 +352,7 @@ class Ctr_ParseNode(AbstractControllerNode):
         if self.verbose:
             print(self.verbose_prefix, f"Parse code of node type={setupNode.type}, name={setupNode.name}")
         # insert code into source tree
+        tree = _encloseConnector(tree, setupNode.startswith, setupNode.endswith)
         ctrret, pathInfo = _insertConnectors(self._ctrParseGraph, tree, self.verbose, self.verbose_prefix)
         return ctrret
 

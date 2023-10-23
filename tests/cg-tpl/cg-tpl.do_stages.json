@@ -8,9 +8,7 @@
         "_param:__indent__": 1,
         "_link:execute": []
       },
-      "end do   ! stage",
-      "! store the output",
-      "@M hy_updateState"
+      "end do   ! stage"
     ]
   },
   "_param:__type__": ".f90"

@@ -91,6 +91,10 @@ class spark_amrex_tele_nodes(spark_nodes):
         self.levelBegin, self.levelEnd = fr.ConstructBeginEndNodes(
             name="level", tpl="cg-tpl.do_levels.json"
         )
+        self.stageBegin, self.stageEnd = fr.ConstructBeginEndNodes(
+            name="stage", tpl="cg-tpl.do_stages.json",
+            endswith="@M hy_updateState"
+        )
 
         self.ifLevGToneBegin, self.ifLevGToneEnd = fr.ConstructBeginEndNodes(
             name="ifLevGTone", tpl="cg-tpl.if_levGTone.json"
@@ -133,10 +137,13 @@ class spark_paramesh_tele_nodes(spark_nodes):
 
         super().__init__()
 
+        self.stageBegin, self.stageEnd = fr.ConstructBeginEndNodes(
+            name="stage", tpl="cg-tpl.do_stages.json",
+            endswith="@M hy_updateState"
+        )
         self.blockBegin, self.blockEnd = fr.ConstructBeginEndNodes(
             name="block", tpl="cg-tpl.do_blocks.json"
         )
-
         self.blockBegin2, self.blockEnd2 = fr.ConstructBeginEndNodes(
             name="block2", tpl="cg-tpl.do_blocks2.json"
         )
