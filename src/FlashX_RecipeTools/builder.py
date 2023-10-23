@@ -1,6 +1,6 @@
 from cgkit.cflow.graph import ControlFlowGraph
 
-from .recipe_controllers import Ctr_initRecipeNode
+from .controllers import Ctr_initRecipeNode
 from .nodes import genericBeginNode, genericEndNode
 from .constants import VERBOSE_DEFAULT, DEVICE_KEY, KEEP_KEY
 

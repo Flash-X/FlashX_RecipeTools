@@ -8,12 +8,12 @@ from .nodes import (
 )
 
 # Recipe builder CG-Kit custom nodes and controllers
-from .recipe_builder import (
+from .builder import (
     ConstructBeginEndNodes,
     Recipe,
 )
 
-from .recipe_controllers import (
+from .controllers import (
     Ctr_SetupEdge,
     Ctr_MarkEdgeAsKeep,
     Ctr_InitSubgraph,
