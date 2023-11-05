@@ -8,20 +8,20 @@ class simpleUnsplit_nodes:
         self.tileBegin, self.tileEnd = fr.ConstructTileLoop()
 
         self.soundSpd = fr.WorkNode(
-            name = "Hydro_computeSoundSpeedHll_gpu_oacc",
+            name = "Hydro_computeSoundSpeedHll",
             args = ["lo", "hi", "U", "auxC"],
         )
 
         self.flx = fr.WorkNode(
-            name = "Hydro_computeFluxesHll_X_gpu_oacc",
+            name = "Hydro_computeFluxesHll_X",
             args = ["dt", "lo", "hi", "deltas", "U", "auxC", "flX"],
         )
         self.fly = fr.WorkNode(
-            name = "Hydro_computeFluxesHll_Y_gpu_oacc",
+            name = "Hydro_computeFluxesHll_Y",
             args = ["dt", "lo", "hi", "deltas", "U", "auxC", "flY"],
         )
         self.flz = fr.WorkNode(
-            name = "Hydro_computeFluxesHll_Z_gpu_oacc",
+            name = "Hydro_computeFluxesHll_Z",
             args = ["dt", "lo", "hi", "deltas", "U", "auxC", "flZ"],
         )
         self.tst = fr.WorkNode(
@@ -30,7 +30,7 @@ class simpleUnsplit_nodes:
         )
 
         self.updSoln = fr.WorkNode(
-            name = "Hydro_updateSolutionHll_gpu_oacc",
+            name = "Hydro_updateSolutionHll",
             args = ["lo", "hi", "flX", "flY", "flZ", "U"],
         )
 
