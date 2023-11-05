@@ -38,6 +38,21 @@ class genericEndNode(ClusterEndNode):
         self.name = name
 
 
+class TileIteratorBeginNode(ClusterBeginNode):
+    def __init__(self, itorVar, itorType, **kwargs):
+        super().__init__(nodeType="TileBeginNode")
+        self.name = "tile"
+        self.itorVar = itorVar
+        self.itorType = itorType
+        self.itorOptions = kwargs
+        self.returnStackKey = ""
+
+class TileIteratorEndNode(ClusterEndNode):
+    def __init__(self, beginNode=None):
+        super().__init__(clusterBeginNode=beginNode, nodeType="TileEndNode")
+        self.name = "tile"
+
+
 
 
 ## TODO

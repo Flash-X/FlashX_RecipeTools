@@ -10,6 +10,7 @@ from .nodes import (
 # Recipe builder CG-Kit custom nodes and controllers
 from .builder import (
     ConstructBeginEndNodes,
+    ConstructTileLoop,
     Recipe,
 )
 

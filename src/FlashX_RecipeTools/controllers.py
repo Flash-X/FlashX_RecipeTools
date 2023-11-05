@@ -16,6 +16,8 @@ from .nodes import (
     SetupNode,
     genericBeginNode,
     genericEndNode,
+    TileIteratorBeginNode,
+    TileIteratorEndNode,
 )
 from .constants import (
     DEVICE_KEY,
@@ -24,6 +26,10 @@ from .constants import (
     KEEP_KEY,
     VERBOSE_DEFAULT,
 )
+
+
+FLASHX_RECIPETOOLS_ROOT = Path(__file__).parent.absolute()
+INTERNAL_TEMPLATE_PATH = FLASHX_RECIPETOOLS_ROOT / "_internal_tpl"
 
 
 class Ctr_initRecipeNode(AbstractControllerNode):
@@ -122,7 +128,7 @@ class Ctr_InitSubgraph(AbstractControllerGraph):
         ctrNode.attribute["args"] = ctrNode.getAllWorkArgs()
         # set attributes of subgraph
         if self.verbose:
-            print(self.verbose_prefix, "Set subgraph attributes={ctrNode.attribute}")
+            print(self.verbose_prefix, f"Set subgraph attributes={ctrNode.attribute}")
         for key, val in ctrNode.attribute.items():
             graph.setGraphAttribute(key, val)
         return CtrRet.SUCCESS
@@ -198,17 +204,26 @@ class Ctr_ParseGraph(AbstractControllerGraph):
         else:  # otherwise graph is a subgraph
             if self.verbose:
                 print(self.verbose_prefix, "Parse subgraph, do nothing")
-            self._callReturnStack.append(CtrRet.SUCCESS)
+
+            tree_subGraph = srctree.load(INTERNAL_TEMPLATE_PATH / "cg-tpl.subGraph.json")
+            tree_subGraph["_param:level"] = str(graph.level)
+            tree_subGraph["_param:args"] = ", ".join(graphAttribute["args"])
+            ctrret, pathInfo = _insertConnectors(self, tree_subGraph, self.verbose, self.verbose_prefix)
+            self._callReturnStack.append(ctrret)
+            if CtrRet.SUCCESS == ctrret:
+                linkKeyList = srctree.search_links(tree_subGraph)
+                self.pushLinks(linkKeyList)
+                self.pushSourceTreePath(self._stree.getLastLinkPath(linkKeyList))
         return self._callReturnStack[-1]
 
     def q(self, graph, graphAttribute):
         assert self._callReturnStack
         if CtrRet.SUCCESS == self._callReturnStack.pop():
             if self.verbose:
-                print(self.verbose_prefix, "Terminate parsing graph at level={graph.level}")
-            # linkKeyList = self.popLinks()
-            # self.popSourceTreePath(linkKeyList)
-            # assert graph.isSubgraph() or 0 == sum([len(p) for p in self._pathStack.values()])
+                print(self.verbose_prefix, f"Terminate parsing graph at level={graph.level}")
+            linkKeyList = self.popLinks()
+            self.popSourceTreePath(linkKeyList)
+            assert graph.isSubgraph() or 0 == sum([len(p) for p in self._pathStack.values()])
             return CtrRet.SUCCESS
         else:
             return CtrRet.ERROR
@@ -261,7 +276,7 @@ class Ctr_ParseNode(AbstractControllerNode):
         super().__init__(controllerType="view", verbose=verbose, verbose_prefix="[Ctr_ParseNode]")
         self._ctrParseGraph = ctrParseGraph
         self._templatePath = ctrParseGraph.templatePath
-        self._tree_work = srctree.load(self._templatePath / workTemplate)
+        self._tree_work = srctree.load(INTERNAL_TEMPLATE_PATH / workTemplate)
         self._beginEnd_callReturnStack = dict()
 
     def __call__(self, graph, node, nodeAttribute):
@@ -274,9 +289,13 @@ class Ctr_ParseNode(AbstractControllerNode):
             return self._call_GenericBeginNode(nodeAttribute["obj"], graph, node, nodeAttribute)
         elif isinstance(nodeAttribute["obj"], genericEndNode):
             return self._call_GenericEndNode(nodeAttribute["obj"], graph, node, nodeAttribute)
+        elif isinstance(nodeAttribute["obj"], TileIteratorBeginNode):
+            return self._call_TileItoratorBeginNode(nodeAttribute["obj"], graph, node, nodeAttribute)
+        elif isinstance(nodeAttribute["obj"], TileIteratorEndNode):
+            return self._call_TileItoratorEndNode(nodeAttribute["obj"], graph, node, nodeAttribute)
         else:
             if self.verbose:
-                print(self.verbose_prefix, "Nothing to parse for node object {type(nodeAttribute['obj'])}")
+                print(self.verbose_prefix, f"Nothing to parse for node object {type(nodeAttribute['obj'])}")
             return CtrRet.VOID
 
     def _call_WorkNode(self, workNode, graph, node, nodeAttribute):
@@ -351,6 +370,62 @@ class Ctr_ParseNode(AbstractControllerNode):
             return CtrRet.SUCCESS
         return CtrRet.ERROR
 
+
+    def _call_TileItoratorBeginNode(self, beginNode, graph, node, nodeAttribute):
+        assert isinstance(beginNode, TileIteratorBeginNode), type(beginNode)
+        assert 1 == nodeAttribute["obj"].nEndNodes()  # TODO can be made more general for multiple end nodes
+        if self.verbose:
+            print(self.verbose_prefix, f"Parse code of node type={beginNode.type}, name={beginNode.name}")
+        tree_begin = srctree.load(INTERNAL_TEMPLATE_PATH / "cg-tpl.tileLoop.json")
+
+        itorVar = beginNode.itorVar
+        itorType = beginNode.itorType
+        itorOptions =  ", ".join(
+            [f"{k}={v}" for k, v in beginNode.itorOptions.items()]
+        )
+        tree_begin["_param:itorArgs"] = ", ".join(
+            filter(None, [itorVar, itorType, itorOptions])
+        )
+
+        assert 0 < len(srctree.search_connectors(tree_begin))
+        # tree_begin = _encloseConnector(tree_begin, beginNode.startswith, beginNode.endswith)
+        ctrret, pathInfo = _insertConnectors(self._ctrParseGraph, tree_begin, self.verbose, self.verbose_prefix)
+        returnStackKey = beginNode.name
+        i = 0
+        while returnStackKey in self._beginEnd_callReturnStack.keys():
+            i += 1
+            returnStackKey = f"{beginNode.name}_{i}"
+        # save return stack key for processing correcponding endNode
+        beginNode.returnStackKey = returnStackKey
+
+        self._beginEnd_callReturnStack[returnStackKey] = list()
+        callReturnStack = self._beginEnd_callReturnStack[returnStackKey]
+
+        callReturnStack.append(ctrret)
+        if CtrRet.SUCCESS == ctrret:
+            stree = self._ctrParseGraph.getSourceTree()
+            linkKeyList = srctree.search_links(tree_begin)
+            self._ctrParseGraph.pushLinks(linkKeyList)
+            self._ctrParseGraph.pushSourceTreePath(stree.getLastLinkPath(linkKeyList))
+        return ctrret
+
+    def _call_TileItoratorEndNode(self, endNode, graph, node, nodeAttribute):
+        assert isinstance(endNode, TileIteratorEndNode), type(endNode)
+        assert endNode.name == endNode.beginNode.name
+        # TODO check if all end nodes were visited
+        if self.verbose:
+            print(self.verbose_prefix, f"Parse code of node type={endNode.type}, name={endNode.name}")
+        # process as generic end node
+        returnStackKey = endNode.beginNode.returnStackKey
+        callReturnStack = self._beginEnd_callReturnStack[returnStackKey]
+        assert isinstance(callReturnStack, list)
+        if CtrRet.SUCCESS == callReturnStack.pop():
+            linkKeyList = self._ctrParseGraph.popLinks()
+            self._ctrParseGraph.popSourceTreePath(linkKeyList)
+            return CtrRet.SUCCESS
+        return CtrRet.ERROR
+
+
     def _call_SetupNode(self, setupNode, graph, node, nodeAttribute):
         assert isinstance(setupNode, SetupNode), type(setupNode)
         # setup parsing
@@ -371,8 +446,26 @@ class Ctr_ParseMultiEdge(AbstractControllerMultiEdge):
         self._callReturnStack = list()
 
     def __call__(self, graph, node, nodeAttribute, successors):
+        tree_concurrent = srctree.load(INTERNAL_TEMPLATE_PATH / "cg-tpl.concurrent_work.json")
+        # parse code into source tree
         if self.verbose:
-            print(self.verbose_prefix, "Calling ParseMultiEdge, do nothing")
+            print(self.verbose_prefix, f"Parse code of node = {node}")
+        ctrret, pathInfo = _insertConnectors(self._ctrParseGraph, tree_concurrent, self.verbose, self.verbose_prefix)
+        self._callReturnStack.append(ctrret)
+        if CtrRet.SUCCESS == ctrret:
+            stree = self._ctrParseGraph.getSourceTree()
+            linkKeyList = srctree.search_links(tree_concurrent)
+            self._ctrParseGraph.pushLinks(linkKeyList)
+            self._ctrParseGraph.pushSourceTreePath(stree.getLastLinkPath(linkKeyList))
+        return ctrret
 
     def q(self, graph, node, nodeAttribute, predecessors):
-        return CtrRet.ERROR
+        assert self._callReturnStack
+        if self.verbose:
+            print(self.verbose_prefix, 'Exit MultiEdge')
+        if CtrRet.SUCCESS == self._callReturnStack.pop():
+            linkKeyList = self._ctrParseGraph.popLinks()
+            self._ctrParseGraph.popSourceTreePath(linkKeyList)
+            return CtrRet.SUCCESS
+        else:
+            return CtrRet.ERROR

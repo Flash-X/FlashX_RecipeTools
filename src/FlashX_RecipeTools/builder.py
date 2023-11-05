@@ -1,13 +1,26 @@
 from cgkit.cflow.graph import ControlFlowGraph
 
 from .controllers import Ctr_initRecipeNode
-from .nodes import genericBeginNode, genericEndNode
+from .nodes import (
+    genericBeginNode,
+    genericEndNode,
+    TileIteratorBeginNode,
+    TileIteratorEndNode,
+)
 from .constants import VERBOSE_DEFAULT, DEVICE_KEY, KEEP_KEY
 
 
 def ConstructBeginEndNodes(name, tpl, startswith="", endswith=""):
     beginNode = genericBeginNode(name, tpl, startswith, endswith)
     endNode = genericEndNode(name, beginNode)
+    beginNode.appendEndNode(endNode)
+
+    return beginNode, endNode
+
+
+def ConstructTileLoop(itorVar="itor", itorType="LEAF", **kwargs):
+    beginNode = TileIteratorBeginNode(itorVar, itorType, **kwargs)
+    endNode = TileIteratorEndNode(beginNode)
     beginNode.appendEndNode(endNode)
 
     return beginNode, endNode
