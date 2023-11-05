@@ -23,10 +23,10 @@ def amrex_tele(recipe, root):
     _permLims = recipe.add_item(n.permLims, invoke_after=_blockBegin)
 
     # stages
-    _stageBegin = recipe.add_item(n.stageBegin, invoke_after=_initSoln)
+    _stageBegin = recipe.add_item(n.stageBegin, invoke_after=[_shockDet, _initSoln, _permLims])
 
     _gravAccel = recipe.add_item(n.gravAccel, invoke_after=_stageBegin)
-    _calcLims = recipe.add_item(n.calcLims, invoke_after=_gravAccel)
+    _calcLims = recipe.add_item(n.calcLims, invoke_after=_stageBegin)
     _getFlat = recipe.add_item(n.getFlat, invoke_after=_calcLims)
     _getFlux = recipe.add_item(n.getFlux, invoke_after=_getFlat)
     _saveFluxBuf = recipe.add_item(n.saveFluxBuf, invoke_after=_getFlux)
@@ -49,7 +49,7 @@ def amrex_tele(recipe, root):
     _blockEnd = recipe.add_item(n.blockEnd, invoke_after=_ifLevLTmaxEnd)
     # end blocks
 
-    _levelEnd_id = recipe.add_item(n.levelEnd, invoke_after=_blockEnd)
+    _levelEnd = recipe.add_item(n.levelEnd, invoke_after=_blockEnd)
     # end levels
 
     return recipe
@@ -160,8 +160,10 @@ def main(variant):
     #                                     controllerInitSubgraph=fr.Ctr_InitSubgraph())
     h = recipe
 
+    h.verbose = True
+
     # parse code from hierarchical graph
-    ctrParseGraph = fr.Ctr_ParseGraph(templatePath="cg-tpl")
+    ctrParseGraph = fr.Ctr_ParseGraph(templatePath="cg-tpl", verbose=False)
     ctrParseNode = fr.Ctr_ParseNode(ctrParseGraph)
     ctrParseMultiEdge = fr.Ctr_ParseMultiEdge(ctrParseGraph)
     h.parseCode(
@@ -178,17 +180,12 @@ def main(variant):
 
     # plot
     # set constants
-    PLOTID_GRAPH = 211
-    PLOTID_H_GRAPH = 212
+    PLOTID_GRAPH = 111
 
-    fig = plt.figure(figsize=(16, 8))
+    fig = plt.figure(figsize=(16, 6))
 
     ax = plt.subplot(PLOTID_GRAPH)
     ax.set_title("Control Flow Graph")
-    recipe.plot(nodeLabels=True)
-
-    ax = plt.subplot(PLOTID_H_GRAPH)
-    ax.set_title("Coarse Control Flow Graph")
     h.plot(nodeLabels=True)
 
     # plt.show()
