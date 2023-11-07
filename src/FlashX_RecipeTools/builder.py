@@ -27,13 +27,20 @@ def ConstructTileLoop(itorVar="itor", itorType="LEAF", **kwargs):
 
 
 class Recipe(ControlFlowGraph):
-    def __init__(self, tpl=None, verbose=VERBOSE_DEFAULT, **kwargs):
+    def __init__(self, tpl=None, operation_spec=None, verbose=VERBOSE_DEFAULT, **kwargs):
         super().__init__(verbose=verbose, **kwargs)
 
         self.tpl = tpl
+        self.opspec = operation_spec
 
         self.__init_node = Ctr_initRecipeNode()
         self.__is_empty = True
+
+    def _shallowCopy(self):
+        shallowCopy = super()._shallowCopy()
+        shallowCopy.tpl = self.tpl
+        shallowCopy.opspec = self.opspec
+        return shallowCopy
 
     def add_item(self, node, invoke_after, map_to=None):
         handle = self.linkNode(node, controllerNode=self.__init_node)(invoke_after)

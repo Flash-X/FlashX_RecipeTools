@@ -2,6 +2,7 @@ __version__ = "0.1.0"
 
 from .nodes import (
     WorkNode,
+    LeafNode,
     SetupNode,
     genericBeginNode,
     genericEndNode,
@@ -22,3 +23,5 @@ from .controllers import (
     Ctr_ParseNode,
     Ctr_ParseMultiEdge
 )
+
+from .opspec import *

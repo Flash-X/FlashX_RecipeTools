@@ -1,5 +1,6 @@
-from cgkit.cflow.node import WorkNode
-from cgkit.cflow.node import (AbstractNode,
+from cgkit.cflow.node import (WorkNode,
+                              LeafNode,
+                              AbstractNode,
                               ClusterBeginNode,
                               ClusterEndNode,
                               PlainCodeNode)
@@ -10,6 +11,10 @@ class WorkNode(WorkNode):
         self.startswith = startswith
         self.endswith = endswith
 
+
+class LeafNode(LeafNode):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class SetupNode(PlainCodeNode):
