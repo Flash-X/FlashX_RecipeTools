@@ -11,7 +11,7 @@ from .constants import VERBOSE_DEFAULT, DEVICE_KEY, KEEP_KEY
 
 
 def ConstructBeginEndNodes(name, tpl, startswith="", endswith=""):
-    beginNode = genericBeginNode(name, tpl, startswith, endswith)
+    beginNode = genericBeginNode(name, tpl, startswith=startswith, endswith=endswith)
     endNode = genericEndNode(name, beginNode)
     beginNode.appendEndNode(endNode)
 
