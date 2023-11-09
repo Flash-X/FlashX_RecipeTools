@@ -56,6 +56,9 @@ class Ctr_ParseTFGraph(AbstractControllerGraph):
         if self.verbose:
             print(self.verbose_prefix, f"Parsing TF graph at level={graph.level}")
         if graph.isSubgraph():
+            # clear the call graphs
+            self.call_graph.clear()
+            self.concurrent_call_graph.clear()
             if self.verbose:
                 print(self.verbose_prefix, f"Entering subgraph level={graph.level}")
             if graph.level > 1:    # TODO: need to know why this is needed
@@ -82,7 +85,9 @@ class Ctr_ParseTFGraph(AbstractControllerGraph):
         if self.verbose:
             print(self.verbose_prefix, f"exiting subgraph level={graph.level}")
         # push call graph to TFspec
-        self.getCurrentTF()["subroutine_call_graph"] = list(self.call_graph)
+        if graph.level > 1:    # TODO: need to know why this is needed
+            self.getCurrentTF()["subroutine_call_graph"] = list(self.call_graph)
+            print("check this:", self.call_graph)
         return CtrRet.SUCCESS
 
     def getCurrentTF(self):
@@ -127,7 +132,11 @@ class Ctr_ParseTFNode(AbstractControllerNode):
 
     def __call__(self, graph, node, nodeAttribute):
         if self.verbose:
-            print(self.verbose_prefix, f"parsing node = {node}, {nodeAttribute['obj'].type}")
+            try:    # TODO: maybe *all* nodes could have it's name?
+                name = nodeAttribute["obj"].name
+            except AttributeError:
+                name = ""
+            print(self.verbose_prefix, f"Parsing node = {node}, {nodeAttribute['obj'].type}, {name}")
         nodeObj = nodeAttribute["obj"]
         if OPSPEC_KEY in nodeAttribute:
             self.__ctrParseGraph.getCallGraph().append(nodeObj.name)
