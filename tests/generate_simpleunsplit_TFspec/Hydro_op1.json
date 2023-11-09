@@ -6,10 +6,10 @@
 
   "external": {
     "_dt": {"type": "real",
-      "extents": []
+      "extents": "()"
     },
     "_eosMode": {"type": "integer",
-      "extents": []
+      "extents": "()"
     }
   },
 
