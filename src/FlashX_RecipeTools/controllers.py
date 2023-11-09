@@ -25,6 +25,7 @@ from .constants import (
     DEVICE_CHANGE_KEY,
     KEEP_KEY,
     VERBOSE_DEFAULT,
+    OPSPEC_KEY
 )
 
 
@@ -42,6 +43,9 @@ class Ctr_initRecipeNode(AbstractControllerNode):
 
     def __call__(self, graph, node, nodeAttributes):
         graph.setNodeAttribute(node, DEVICE_KEY, DEVICE_DEFAULT)
+        nodeObj = nodeAttributes["obj"]
+        if hasattr(nodeObj, "opspec"):
+            graph.setNodeAttribute(node, OPSPEC_KEY, nodeObj.opspec)
         return CtrRet.SUCCESS
 
 
@@ -70,14 +74,19 @@ class Ctr_GetAttributesForSubgraph(AbstractControllerNode):
         super().__init__(controllerType="view", verbose=verbose, verbose_prefix="[Ctr_GetAttributesForSubgraph]")
         self.attribute = dict()
         self.workArgs = dict()
+        self.opSpecs = dict()
 
     def __call__(self, graph, node, nodeAttribute):
         # get device(s)
         if DEVICE_KEY in nodeAttribute:
-            if not DEVICE_KEY in self.attribute:
+            if DEVICE_KEY not in self.attribute:
                 self.attribute[DEVICE_KEY] = nodeAttribute[DEVICE_KEY]
-            elif not nodeAttribute[DEVICE_KEY] in self.attribute[DEVICE_KEY]:
+            elif nodeAttribute[DEVICE_KEY] not in self.attribute[DEVICE_KEY]:
                 self.attribute[DEVICE_KEY] = ",".join([self.attribute[DEVICE_KEY], nodeAttribute[DEVICE_KEY]])
+        # gather names of operation spec
+        if OPSPEC_KEY in nodeAttribute:
+            self.opSpecs[nodeAttribute["obj"].name] = nodeAttribute[OPSPEC_KEY]
+
         # get arguments of work nodes
         if isinstance(nodeAttribute["obj"], WorkNode):
             assert not nodeAttribute["obj"].name in self.workArgs
@@ -99,6 +108,14 @@ class Ctr_GetAttributesForSubgraph(AbstractControllerNode):
         allArgs = list(allArgs)
         allArgs.sort()
         return allArgs
+
+    def getAllOpSpecs(self):
+        allOpSpecs = set()
+        for opspec in self.opSpecs.values():
+            allOpSpecs.add(opspec)
+        allOpSpecs = list(allOpSpecs)
+        allOpSpecs.sort()
+        return allOpSpecs
 
 
 class Ctr_MarkEdgeAsKeep(AbstractControllerEdge):
@@ -126,6 +143,7 @@ class Ctr_InitSubgraph(AbstractControllerGraph):
         graph.visit(controllerNode=ctrNode)
         ctrNode.attribute["names"] = ctrNode.getAllWorkNames()
         ctrNode.attribute["args"] = ctrNode.getAllWorkArgs()
+        ctrNode.attribute["opspecs"] = ctrNode.getAllOpSpecs()
         # set attributes of subgraph
         if self.verbose:
             print(self.verbose_prefix, f"Set subgraph attributes={ctrNode.attribute}")

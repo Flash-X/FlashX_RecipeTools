@@ -68,19 +68,18 @@ def _find_pp(v):
     return False
 
 
-def preprocess(d, pp):
-    assert isinstance(d, dict), type(d)
-    assert isinstance(pp, dict), type(pp)
+def preprocess(opspec:dict, pp:dict) -> dict:
 
-    for k, v in d.items():
+    d = dict()
+
+    for k, v in opspec.items():
         if isinstance(v, dict):
-            preprocess(v, pp)
+            d[k] = preprocess(v, pp)
         else:
             if _find_pp(v):
-                # print("[before]", d[k])
                 v = _replace_pp(v, pp)
                 v = _eval_pp(v)
                 v = _str2int(v)
-                d[k] = v
-                # print("[after]", d[k])
+            d[k] = v
 
+    return d

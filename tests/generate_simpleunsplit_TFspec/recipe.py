@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import FlashX_RecipeTools as fr
+import json
+import milhoja
 
 from matplotlib import pyplot as plt
 
@@ -26,8 +28,10 @@ PP = {
 }
 
 
-def simpleUnsplit(recipe, root):
+def simpleUnsplit(recipe, root, operation_spec):
     from _nodes import simpleUnsplit_nodes
+
+    recipe.add_operation_spec(operation_spec)
 
     n = simpleUnsplit_nodes()
 
@@ -46,22 +50,35 @@ def simpleUnsplit(recipe, root):
     return _tileEnd
 
 
-def main():
-    # gather operation spec
-    op_spec = fr.opspec.load("Hydro_op1.json", PP)
-    # create empty recipe
-    recipe = fr.Recipe(tpl="cg-tpl.Hydro.F90", operation_spec=op_spec)
+def getGridSpec(pp):
+    d = {
+        "dimension": pp["NDIM"],
+        "nxb": pp["NXB"],
+        "nyb": pp["NYB"],
+        "nzb": pp["NZB"],
+        "nguardcells": pp["NGUARD"]
+    }
+    return d
 
+
+def main():
+    # create empty recipe
+    recipe = fr.Recipe(tpl="cg-tpl.Hydro.F90")
+
+    # gather grid spec
+    grid_spec = getGridSpec(PP)
+    with open("__grid.json", "w") as f:
+        json.dump(grid_spec, f, indent=2)
+    # preprocess, gather, and dump operation spec
+    hydro_spec = fr.opspec.load("Hydro_op1.json", PP)
     # build recipe
-    _endNode = simpleUnsplit(recipe, recipe.root)
+    _endNode = simpleUnsplit(recipe, recipe.root, operation_spec=hydro_spec)
     _endNode = recipe.add_item(fr.LeafNode(), invoke_after=_endNode)
-    recipe.verbose = True
+    recipe.verbose = False
 
     # gather argument list of each nodes
     recipe.traverse(controllerNode=fr.opspec.Ctr_InitNodeFromOpspec(verbose=False))
 
-
-    print("+++++++++++++++++++++++++++++++++")
 
     # transform into hierarchical graph
     recipe.traverse(controllerEdge=fr.Ctr_SetupEdge(verbose=False))
@@ -69,6 +86,34 @@ def main():
                                         controllerInitSubgraph=fr.Ctr_InitSubgraph(verbose=False))
     h.verbose = False
 
+    # generate intermediate TF data
+    ctrParseTFGraph = fr.opspec.Ctr_ParseTFGraph()
+    ctrParseTFNode = fr.opspec.Ctr_ParseTFNode(ctrParseTFGraph)
+    ctrParseTFMultiedge = fr.opspec.Ctr_ParseTFMultiEdge(ctrParseTFGraph)
+    h.traverseHierarchy(controllerGraph=ctrParseTFGraph,
+                        controllerNode=ctrParseTFNode,
+                        controllerMultiEdge=ctrParseTFMultiedge)
+
+    # Milhoja
+    tfData = ctrParseTFGraph.getTFData()
+    logger = milhoja.BasicLogger(level=3)
+    tfSpecTpl = "tf_spec_tpl.json"   # TODO: auto generate this?
+    for tf in tfData:
+        name = tf["name"]
+        call_graph = tf["subroutine_call_graph"]
+        group_json_all = tf["operation_specs"]
+        grid_json = "__grid.json"
+        tfAssembler = milhoja.TaskFunctionAssembler.from_milhoja_json(
+                    name, call_graph, group_json_all, grid_json, logger
+                 )
+        tfAssembler.to_milhoja_json(f"__tf_spec_{name}.json", tfSpecTpl, overwrite=True)
+
+    # dump TF data for debugging
+    ctrParseTFGraph.dumpTFData(indent=2)
+
+
+
+    ## Debug
     # parse code from hierarchical graph
     ctrParseGraph = fr.Ctr_ParseGraph(templatePath="cg-tpl", verbose=False)
     ctrParseNode = fr.Ctr_ParseNode(ctrParseGraph, verbose=False)
@@ -78,20 +123,6 @@ def main():
         controllerNode=ctrParseNode,
         controllerMultiEdge=ctrParseMultiEdge,
     )
-
-
-    # generate TF spec
-    ctrParseTFGraph = fr.opspec.Ctr_ParseTFGraph()
-    ctrParseTFNode = fr.opspec.Ctr_ParseTFNode(ctrParseTFGraph)
-    ctrParseTFMultiedge = fr.opspec.Ctr_ParseTFMultiEdge(ctrParseTFGraph)
-    h.traverseHierarchy(controllerGraph=ctrParseTFGraph,
-                        controllerNode=ctrParseTFNode,
-                        controllerMultiEdge=ctrParseTFMultiedge)
-
-    ctrParseTFGraph.dumpTFspecs(indent=2)
-
-    # parse operation spec for debugging
-    fr.opspec.dump(op_spec, "__Hydro_op1_pped.json", indent=2)
 
     # parse source tree
     stree = ctrParseGraph.getSourceTree()

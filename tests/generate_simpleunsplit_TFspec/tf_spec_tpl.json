@@ -1,0 +1,16 @@
+{
+  "task_function": {
+    "language": "C++", 
+    "processor": "GPU",
+    "cpp_header": "cpu_tf_hydro.h",
+    "cpp_source": "cpu_tf_hydro.cpp",
+    "c2f_source": "FIXME.c",
+    "fortran_source": "FIXME.F90"
+  },
+  "data_item": {
+    "type": "tilewrapper",
+    "byte_alignment": 1,
+    "header": "FIXME.h",
+    "source": "FIXME.c"
+  }
+}

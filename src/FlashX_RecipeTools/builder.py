@@ -27,11 +27,12 @@ def ConstructTileLoop(itorVar="itor", itorType="LEAF", **kwargs):
 
 
 class Recipe(ControlFlowGraph):
-    def __init__(self, tpl=None, operation_spec=None, verbose=VERBOSE_DEFAULT, **kwargs):
+    def __init__(self, tpl=None, verbose=VERBOSE_DEFAULT, **kwargs):
         super().__init__(verbose=verbose, **kwargs)
 
         self.tpl = tpl
-        self.opspec = operation_spec
+        self.opspecs = dict()
+        self.opspec_fnames = dict()
 
         self.__init_node = Ctr_initRecipeNode()
         self.__is_empty = True
@@ -39,7 +40,8 @@ class Recipe(ControlFlowGraph):
     def _shallowCopy(self):
         shallowCopy = super()._shallowCopy()
         shallowCopy.tpl = self.tpl
-        shallowCopy.opspec = self.opspec
+        shallowCopy.opspecs = self.opspecs.copy()
+        shallowCopy.opspec_fnames = self.opspec_fnames.copy()
         return shallowCopy
 
     def add_item(self, node, invoke_after, map_to=None):
@@ -59,3 +61,21 @@ class Recipe(ControlFlowGraph):
             self.__is_empty = False
 
         return handle
+
+    def add_operation_spec(self, opspec:dict):
+        assert len(opspec) != 0
+        opspec_name = opspec["name"]
+        self.opspecs.update({opspec_name: opspec})
+        self.opspec_fnames.update({opspec_name: opspec["fname"]})
+
+    def get_operation_spec(self, operation_name:str):
+        assert operation_name in self.opspecs.keys(), (
+            f"{operation_name} spec is not found in the given recipe"
+        )
+        return self.opspecs[operation_name]
+
+    def get_operation_spec_fname(self, operation_name:str):
+        assert operation_name in self.opspec_fnames.keys(), (
+            f"{operation_name} spec is not found in the given recipe"
+        )
+        return self.opspec_fnames[operation_name]
