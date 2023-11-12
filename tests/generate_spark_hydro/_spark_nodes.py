@@ -77,11 +77,14 @@ class spark_nodes:
         )
         self.doEos = fr.WorkNode(
             name="Eos_wrapped",
-            args=["MODE_DENS_EI", "limits", "hy_starState"]
+            args=["MODE_DENS_EI", "limits", "hy_starState"],
+            startswith="@M hy_DIR_TARGET_update_from([hy_starState, limits])",
+            endswith="@M hy_DIR_TARGET_update_to([hy_starState])",
         )
         self.putFlux = fr.WorkNode(
             name="Grid_putFluxData",
-            args=["tileDesc", "hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ", "blkLimits(LOW,:)"]
+            args=["tileDesc", "hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ", "blkLimits(LOW,:)"],
+            startswith="@M hy_DIR_TARGET_update_from([hy_fluxBufX, hy_fluxBufY, hy_fluxBufZ])",
         )
 
 
