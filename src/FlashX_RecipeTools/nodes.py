@@ -6,13 +6,15 @@ from cgkit.cflow.node import (WorkNode,
                               PlainCodeNode)
 
 class WorkNode(WorkNode):
-    def __init__(self, opspec:str, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.opspec = opspec
         kwargs.setdefault("startswith", "")
         kwargs.setdefault("endswith", "")
         self.startswith = kwargs["startswith"]
         self.endswith = kwargs["endswith"]
+
+        kwargs.setdefault("opspec", "")
+        self.opspec = kwargs["opspec"]
 
 
 class LeafNode(LeafNode):
