@@ -61,7 +61,8 @@ subroutine Hydro(timeEndAdv, dt, dtOld, sweepOrder)
                                hy_rk_updateSoln, &
                                hy_rk_correctFluxes, &
                                hy_rk_shockDetect, &
-                               hy_rk_getFlatteningLimiter
+                               hy_rk_getFlatteningLimiter, &
+                               hy_rk_saveFluxBuf
 
 #include "Simulation.h"
 #include "constants.h"

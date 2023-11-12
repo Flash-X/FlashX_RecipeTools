@@ -13,6 +13,10 @@
       "      @M hy_DIR_TARGET_enter_data(to, [hy_yCenter, hy_yLeft, hy_yRight])",
       "      @M hy_DIR_TARGET_enter_data(to, [hy_zCenter])",
       "   endif",
+      "   if ((.not. hy_telescoping) .and. hy_geometry == CARTESIAN) then",
+      "      @M hy_fill_fareas",
+      "      @M hy_DIR_TARGET_enter_data(to, [hy_fareaX, hy_fareaY, hy_fareaZ])",
+      "   end if",
       "",
       "   xLo = blkLimits(LOW,IAXIS); xHi = blkLimits(HIGH,IAXIS)",
       "   yLo = blkLimits(LOW,JAXIS); yHi = blkLimits(HIGH,JAXIS)",
@@ -31,6 +35,10 @@
         "_link:execute": []
       },
 
+      "   if ((.not. hy_telescoping) .and. hy_geometry == CARTESIAN) then",
+      "      @M hy_DIR_TARGET_exit_data(release, [hy_fareaX, hy_fareaY, hy_fareaZ])",
+      "      @M hy_release_fareas",
+      "   end if",
       "   if (hy_geometry /= CARTESIAN) then",
       "      @M hy_DIR_TARGET_exit_data(release, [hy_fareaX, hy_fareaY, hy_fareaZ, hy_cvol])",
       "      @M hy_DIR_TARGET_exit_data(release, [hy_xCenter, hy_xLeft, hy_xRight])",
