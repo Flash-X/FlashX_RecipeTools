@@ -1,0 +1,12 @@
+{
+  "_connector:execute": {
+    "_code": [
+      "!!! Begin concurrent work",
+      { 
+        "_link:execute": [] 
+      },
+      "!!! End concurrent work"
+    ]
+  },
+  "_param:__type__": ".f90"
+}

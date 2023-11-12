@@ -1,0 +1,119 @@
+{
+    "format": ["Milhoja-JSON", "1.0.0"],
+    "grid": {
+        "dimension":    3,
+        "nxb":         16,
+        "nyb":         16,
+        "nzb":         16,
+        "nguardcells":  1
+    },
+    "task_function": {
+        "name": "cpu_tf_hydro",
+        "language": "C++", 
+        "processor": "CPU",
+        "cpp_header": "cpu_tf_hydro.h",
+        "cpp_source": "cpu_tf_hydro.cpp",
+        "c2f_source": "",
+        "fortran_source": "",
+        "variable_index_base": 1,
+        "argument_list": ["external_hydro_op1_dt",
+                          "tile_deltas",
+                          "tile_hi",
+                          "tile_lo",
+                          "CC_1",
+                          "FLX_1",
+                          "FLY_1",
+                          "FLZ_1",
+                          "scratch_hydro_op1_auxC"],
+        "argument_specifications": {
+            "external_hydro_op1_dt":   {"source":           "external",
+                               "type":             "real",
+                               "extents":          []},
+            "tile_deltas":    {"source":           "tile_deltas"},
+            "tile_lo":        {"source":           "tile_lo"},
+            "tile_hi":        {"source":           "tile_hi"},
+            "CC_1":           {"source":           "grid_data",
+                               "structure_index": ["CENTER", 1],
+                               "variables_in":    [1, 9],
+                               "variables_out":   [1, 8]},
+            "FLX_1":          {"source":           "grid_data",
+                               "structure_index": ["FLUXX", 1],
+                               "variables_out":   [1, 5]},
+            "FLY_1":          {"source":           "grid_data",
+                               "structure_index": ["FLUXY", 1],
+                               "variables_out":   [1, 5]},
+            "FLZ_1":          {"source":           "grid_data",
+                               "structure_index": ["FLUXZ", 1],
+                               "variables_out":   [1, 5]},
+            "scratch_hydro_op1_auxC": {"source":           "scratch",
+                               "type":             "real",
+                               "extents":          "(18, 18, 18)",
+                               "lbound":           "(tile_lo) - (1, 1, 1)"}
+        },
+        "subroutine_call_graph": [
+            "hy::computeFluxesHll",
+            "hy::updateSolutionHll",
+            "Eos::idealGammaDensIe"
+        ]
+    },
+    "data_item": {
+        "type": "TileWrapper",
+        "byte_alignment": -1,
+        "header": "Tile_cpu_tf_hydro.h",
+        "source": "Tile_cpu_tf_hydro.cpp"
+    },
+    "subroutines": {
+        "hy::computeFluxesHll": {
+            "interface_file": "Hydro.h",
+            "argument_list": ["dt",
+                              "lo",
+                              "hi",
+                              "deltas",
+                              "Uin",
+                              "flX",
+                              "flY",
+                              "flZ",
+                              "auxC"],
+            "argument_mapping": {
+                "dt":     "external_hydro_op1_dt",
+                "lo":     "tile_lo",
+                "hi":     "tile_hi",
+                "deltas": "tile_deltas",
+                "Uin":    "CC_1",
+                "flX":    "FLX_1",
+                "flY":    "FLY_1",
+                "flZ":    "FLZ_1",
+                "auxC":   "scratch_hydro_op1_auxC"
+            }
+        },
+        "hy::updateSolutionHll": {
+            "interface_file": "Hydro.h",
+            "argument_list": ["lo",
+                              "hi",
+                              "U",
+                              "flX",
+                              "flY",
+                              "flZ"],
+            "argument_mapping": {
+                "lo":  "tile_lo",
+                "hi":  "tile_hi",
+                "U":   "CC_1",
+                "flX": "FLX_1",
+                "flY": "FLY_1",
+                "flZ": "FLZ_1"
+            }
+        },
+        "Eos::idealGammaDensIe": {
+            "interface_file": "Eos.h",
+            "argument_list": ["lo",
+                              "hi",
+                              "solnData"],
+            "argument_mapping": {
+                "lo":        "tile_lo",
+                "hi":        "tile_hi",
+                "solnData":  "CC_1"
+            }
+        }
+    }
+}
+

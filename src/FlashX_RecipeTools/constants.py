@@ -45,3 +45,5 @@ MILHOJA_ARGS_KEY = "arguments"
 MILHOJA_DEVICE_LIST = ["gpu", "cpu"]
 
 ###############################################################################
+
+OPSPEC_KEY = "operation"

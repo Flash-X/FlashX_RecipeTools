@@ -2,6 +2,7 @@ __version__ = "0.1.0"
 
 from .nodes import (
     WorkNode,
+    LeafNode,
     SetupNode,
     genericBeginNode,
     genericEndNode,
@@ -10,6 +11,7 @@ from .nodes import (
 # Recipe builder CG-Kit custom nodes and controllers
 from .builder import (
     ConstructBeginEndNodes,
+    ConstructTileLoop,
     Recipe,
 )
 
@@ -21,3 +23,5 @@ from .controllers import (
     Ctr_ParseNode,
     Ctr_ParseMultiEdge
 )
+
+from .opspec import *

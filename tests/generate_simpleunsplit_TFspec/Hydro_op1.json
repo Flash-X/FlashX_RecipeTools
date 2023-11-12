@@ -1,0 +1,142 @@
+{
+  "format": ["Milhoja-JSON", "1.0.0"],
+
+  "name": "Hydro_op1",
+  "variable_index_base": 1,
+
+  "external": {
+    "_dt": {"type": "real",
+      "extents": "()"
+    },
+    "_eosMode": {"type": "integer",
+      "extents": "()"
+    }
+  },
+
+  "scratch": {
+    "_auxC": {"type": "real",
+      "extents": "({NXB+2*K1D}, {NYB+2*K2D}, {NZB+2*K3D})",
+      "lbound": "(tile_lo) - ({K1D}, {K2D}, {K3D})"
+    },
+    "_flX":  {"type": "real",
+      "extents": "({NXB+1}, {NYB}, {NZB}, {NFLUXES})",
+      "lbound":  "(tile_lo, 1)"
+    },
+    "_flY":  {"type": "real",
+      "extents": "({NXB}, {NYB+1}, {NZB}, {NFLUXES})",
+      "lbound":  "(tile_lo, 1)"
+    },
+    "_flZ":  {"type": "real",
+      "extents": "({NXB}, {NYB}, {NZB+1}, {NFLUXES})",
+      "lbound":  "(tile_lo, 1)"
+    }
+  },
+
+
+  "Hydro_computeSoundSpeedHll": {
+    "interface_file": "dr_cg_hydroAdvance_mod.F90",
+    "argument_list": ["lo", "hi", "loU", "U", "loAuxC", "auxC"],
+    "argument_specifications": {
+      "lo":     {"source": "tile_lo"},
+      "hi":     {"source": "tile_hi"},
+      "loU":    {"source": "tile_lbound"},
+      "U":      {"source": "grid_data",
+        "structure_index": ["CENTER", 1],
+        "R": ["{GAMC_VAR}", "{PRES_VAR}", "{DENS_VAR}"]
+      },
+      "loAuxC": {"source": "tile_lbound"},
+      "auxC":   {"source": "scratch", "name": "_auxC"}
+    }
+  },
+
+  "Hydro_computeFluxesHll_X": {
+    "interface_file": "dr_cg_hydroAdvance_mod.F90",
+    "argument_list": ["dt", "lo", "hi", "deltas", "U", "loU", "auxC", "loAuxC", "flX", "loFl"],
+    "argument_specifications": {
+      "dt":     {"source": "external", "name": "_dt"},
+      "lo":     {"source": "tile_lo"},
+      "hi":     {"source": "tile_hi"},
+      "deltas": {"source": "tile_deltas"},
+      "U":      {"source": "grid_data",
+        "structure_index": ["CENTER", 1],
+        "R": ["{DENS_VAR}", "{VELX_VAR}", "{VELY_VAR}", "{VELZ_VAR}", "{PRES_VAR}"]
+      },
+      "loU":    {"source": "tile_lbound"},
+      "auxC":   {"source": "scratch", "name": "_auxC"},
+      "loAuxC": {"source": "tile_lbound"},
+      "flX":    {"source": "scratch", "name": "_flX"},
+      "loFl":   {"source": "tile_lo"}
+    }
+  },
+  "Hydro_computeFluxesHll_Y": {
+    "interface_file": "dr_cg_hydroAdvance_mod.F90",
+    "argument_list": ["dt", "lo", "hi", "deltas", "U", "loU", "auxC", "loAuxC", "flY", "loFl"],
+    "argument_specifications": {
+      "dt":     {"source": "external", "name": "_dt"},
+      "lo":     {"source": "tile_lo"},
+      "hi":     {"source": "tile_hi"},
+      "deltas": {"source": "tile_deltas"},
+      "U":      {"source": "grid_data",
+        "structure_index": ["CENTER", 1],
+        "R": ["{DENS_VAR}", "{VELX_VAR}", "{VELY_VAR}", "{VELZ_VAR}", "{PRES_VAR}"]
+      },
+      "loU":    {"source": "tile_lbound"},
+      "auxC":   {"source": "scratch", "name": "_auxC"},
+      "loAuxC": {"source": "tile_lbound"},
+      "flY":    {"source": "scratch", "name": "_flY"},
+      "loFl":   {"source": "tile_lo"}
+    }
+  },
+  "Hydro_computeFluxesHll_Z": {
+    "interface_file": "dr_cg_hydroAdvance_mod.F90",
+    "argument_list": ["dt", "lo", "hi", "deltas", "U", "loU", "auxC", "loAuxC", "flZ", "loFl"],
+    "argument_specifications": {
+      "dt":     {"source": "external", "name": "_dt"},
+      "lo":     {"source": "tile_lo"},
+      "hi":     {"source": "tile_hi"},
+      "deltas": {"source": "tile_deltas"},
+      "U":      {"source": "grid_data",
+        "structure_index": ["CENTER", 1],
+        "R": ["{DENS_VAR}", "{VELX_VAR}", "{VELY_VAR}", "{VELZ_VAR}", "{PRES_VAR}"]
+      },
+      "loU":    {"source": "tile_lbound"},
+      "auxC":   {"source": "scratch", "name": "_auxC"},
+      "loAuxC": {"source": "tile_lbound"},
+      "flZ":    {"source": "scratch", "name": "_flZ"},
+      "loFl":   {"source": "tile_lo"}
+    }
+  },
+
+  "Hydro_updateSolutionHll": {
+    "interface_file": "dr_cg_hydroAdvance_mod.F90",
+    "argument_list": ["lo", "hi", "flX", "flY", "flZ", "loFl", "U", "loU"],
+    "argument_specifications": {
+      "lo":     {"source": "tile_lo"},
+      "hi":     {"source": "tile_hi"},
+      "flX":    {"source": "scratch", "name": "_flX"},
+      "flY":    {"source": "scratch", "name": "_flY"},
+      "flZ":    {"source": "scratch", "name": "_flZ"},
+      "loFl":   {"source": "tile_lo"},
+      "U":      {"source": "grid_data",
+        "structure_index": ["CENTER", 1],
+        "RW": ["{DENS_VAR}", "{VELX_VAR}", "{VELY_VAR}", "{VELZ_VAR}", "{ENER_VAR}", "{EINT_VAR}"]
+      },
+      "loU":    {"source": "tile_lbound"}
+    }
+  },
+
+  "Eos_wrapped": {
+    "interface_file": "Eos_interface.F90",
+    "argument_list": ["eosMode", "limits", "U"],
+    "argument_specifications": {
+      "eosMode":{"source": "external", "name": "_eosMode"},
+      "limits": {"source": "tile_interior"},
+      "U":      {"source": "grid_data",
+        "structure_index": ["CENTER", 1],
+        "R": ["{DENS_VAR}", "{EINT_VAR}", "{GAMC_VAR}"],
+        "W": ["{PRES_VAR}", "{TEMP_VAR}"]
+      }
+    }
+  }
+
+}

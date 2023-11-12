@@ -1,34 +1,46 @@
-from cgkit.cflow.node import WorkNode
-from cgkit.cflow.node import (AbstractNode,
+from cgkit.cflow.node import (WorkNode,
+                              LeafNode,
+                              AbstractNode,
                               ClusterBeginNode,
                               ClusterEndNode,
                               PlainCodeNode)
 
 class WorkNode(WorkNode):
-    def __init__(self, startswith="", endswith="", **kwargs):
+    def __init__(self, opspec:str, **kwargs):
         super().__init__(**kwargs)
-        self.startswith = startswith
-        self.endswith = endswith
+        self.opspec = opspec
+        kwargs.setdefault("startswith", "")
+        kwargs.setdefault("endswith", "")
+        self.startswith = kwargs["startswith"]
+        self.endswith = kwargs["endswith"]
 
+
+class LeafNode(LeafNode):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class SetupNode(PlainCodeNode):
-    def __init__(self, name, tpl, startswith="", endswith="", **kwargs):
+    def __init__(self, name:str, tpl:str, **kwargs):
         super().__init__(nodeType="SetupNode", **kwargs)
         assert isinstance(name, str), type(name)
         self.name = name
         self.tpl = tpl
-        self.startswith = startswith
-        self.endswith = endswith
+        kwargs.setdefault("startswith", "")
+        kwargs.setdefault("endswith", "")
+        self.startswith = kwargs["startswith"]
+        self.endswith = kwargs["endswith"]
 
 
 class genericBeginNode(ClusterBeginNode):
-    def __init__(self, name, tpl, startswith="", endswith=""):
+    def __init__(self, name:str, tpl:str, **kwargs):
         super().__init__(nodeType="BeginNode")
         self.name = name
         self.tpl = tpl
-        self.startswith = startswith
-        self.endswith = endswith
+        kwargs.setdefault("startswith", "")
+        kwargs.setdefault("endswith", "")
+        self.startswith = kwargs["startswith"]
+        self.endswith = kwargs["endswith"]
         self.returnStackKey = ""
 
 
@@ -36,6 +48,21 @@ class genericEndNode(ClusterEndNode):
     def __init__(self, name, beginNode=None):
         super().__init__(clusterBeginNode=beginNode, nodeType="EndNode")
         self.name = name
+
+
+class TileIteratorBeginNode(ClusterBeginNode):
+    def __init__(self, itorVar, itorType, **kwargs):
+        super().__init__(nodeType="TileBeginNode")
+        self.name = "tile"
+        self.itorVar = itorVar
+        self.itorType = itorType
+        self.itorOptions = kwargs
+        self.returnStackKey = ""
+
+class TileIteratorEndNode(ClusterEndNode):
+    def __init__(self, beginNode=None):
+        super().__init__(clusterBeginNode=beginNode, nodeType="TileEndNode")
+        self.name = "tile"
 
 
 
