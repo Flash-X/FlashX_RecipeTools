@@ -6,6 +6,31 @@ from matplotlib import pyplot as plt
 from argparse import ArgumentParser
 
 
+def _spark_stage_init(recipe, root, n):
+    _shockDet = recipe.add_item(n.shockDet, invoke_after=root)
+    _initSoln = recipe.add_item(n.initSoln, invoke_after=root)
+    _permLims = recipe.add_item(n.permLims, invoke_after=root)
+
+    # leaf node does nothing
+    leaf = fr.LeafNode()
+    _leaf = recipe.add_item(leaf, invoke_after=[_shockDet, _initSoln, _permLims])
+
+    return _leaf
+
+
+def _spark_stage(recipe, root, n):
+    _gravAccel = recipe.add_item(n.gravAccel, invoke_after=root)
+    _calcLims = recipe.add_item(n.calcLims, invoke_after=root)
+    _getFlat = recipe.add_item(n.getFlat, invoke_after=_calcLims)
+    _getFlux = recipe.add_item(n.getFlux, invoke_after=_getFlat)
+    _saveFluxBuf = recipe.add_item(n.saveFluxBuf, invoke_after=_getFlux)
+    _updSoln = recipe.add_item(n.updSoln, invoke_after=_getFlux)
+    _reAbund = recipe.add_item(n.reAbund, invoke_after=_updSoln)
+    _doEos = recipe.add_item(n.doEos, invoke_after=_reAbund)
+
+    return _doEos
+
+
 def amrex_tele(recipe, root):
     from _spark_nodes import spark_amrex_tele_nodes
 
@@ -18,24 +43,16 @@ def amrex_tele(recipe, root):
 
     # blocks
     _blockBegin = recipe.add_item(n.blockBegin, invoke_after=_commFluxes)
-    _shockDet = recipe.add_item(n.shockDet, invoke_after=_blockBegin)
-    _initSoln = recipe.add_item(n.initSoln, invoke_after=_blockBegin)
-    _permLims = recipe.add_item(n.permLims, invoke_after=_blockBegin)
+
+    # common nodes before stage loop
+    _stageInit = _spark_stage_init(recipe, _blockBegin, n)
 
     # stages
-    _stageBegin = recipe.add_item(n.stageBegin, invoke_after=[_shockDet, _initSoln, _permLims])
-
-    _gravAccel = recipe.add_item(n.gravAccel, invoke_after=_stageBegin)
-    _calcLims = recipe.add_item(n.calcLims, invoke_after=_stageBegin)
-    _getFlat = recipe.add_item(n.getFlat, invoke_after=_calcLims)
-    _getFlux = recipe.add_item(n.getFlux, invoke_after=_getFlat)
-    _saveFluxBuf = recipe.add_item(n.saveFluxBuf, invoke_after=_getFlux)
-    _updSoln = recipe.add_item(n.updSoln, invoke_after=_getFlux)
-    _reAbund = recipe.add_item(n.reAbund, invoke_after=_updSoln)
-    _doEos = recipe.add_item(n.doEos, invoke_after=_reAbund)
-
-    _stageEnd = recipe.add_item(n.stageEnd, invoke_after=_doEos)
+    _stageBegin = recipe.add_item(n.stageBegin, invoke_after=_stageInit)
+    # common nodes inner stage loop
+    _innerStage = _spark_stage(recipe, _stageBegin, n)
     # end stages
+    _stageEnd = recipe.add_item(n.stageEnd, invoke_after=_innerStage)
 
     _ifLevGToneBegin = recipe.add_item(n.ifLevGToneBegin, invoke_after=_stageEnd)
     _putFlux = recipe.add_item(n.putFlux, invoke_after=_ifLevGToneBegin)
@@ -64,24 +81,16 @@ def pm_tele(recipe, root):
 
     # blocks
     _blockBegin = recipe.add_item(n.blockBegin, invoke_after=_fillGC)
-    _shockDet = recipe.add_item(n.shockDet, invoke_after=_blockBegin)
-    _initSoln = recipe.add_item(n.initSoln, invoke_after=_blockBegin)
-    _permLims = recipe.add_item(n.permLims, invoke_after=_blockBegin)
+
+    # common nodes before stage loop
+    _stageInit = _spark_stage_init(recipe, _blockBegin, n)
 
     # stages
-    _stageBegin = recipe.add_item(n.stageBegin, invoke_after=_initSoln)
-
-    _gravAccel = recipe.add_item(n.gravAccel, invoke_after=_stageBegin)
-    _calcLims = recipe.add_item(n.calcLims, invoke_after=_gravAccel)
-    _getFlat = recipe.add_item(n.getFlat, invoke_after=_calcLims)
-    _getFlux = recipe.add_item(n.getFlux, invoke_after=_getFlat)
-    _saveFluxBuf = recipe.add_item(n.saveFluxBuf, invoke_after=_getFlux)
-    _updSoln = recipe.add_item(n.updSoln, invoke_after=_getFlux)
-    _reAbund = recipe.add_item(n.reAbund, invoke_after=_updSoln)
-    _doEos = recipe.add_item(n.doEos, invoke_after=_reAbund)
-
-    _stageEnd = recipe.add_item(n.stageEnd, invoke_after=_doEos)
+    _stageBegin = recipe.add_item(n.stageBegin, invoke_after=_stageInit)
+    # common nodes inner stage loop
+    _innerStage = _spark_stage(recipe, _stageBegin, n)
     # end stages
+    _stageEnd = recipe.add_item(n.stageEnd, invoke_after=_innerStage)
 
     _putFlux = recipe.add_item(n.putFlux, invoke_after=_stageEnd)
 
@@ -109,19 +118,13 @@ def pm_nontele(recipe, root):
     _fillGC = recipe.add_item(n.fillGC, invoke_after=_stageBegin)
     _blockBegin = recipe.add_item(n.blockBegin, invoke_after=_fillGC)
 
-    _shockDet = recipe.add_item(n.shockDet, invoke_after=_blockBegin)
-    _initSoln = recipe.add_item(n.initSoln, invoke_after=_blockBegin)
-    _permLims = recipe.add_item(n.permLims, invoke_after=_blockBegin)
+    # common nodes before stage loop
+    _stageInit = _spark_stage_init(recipe, _blockBegin, n)
 
-    _gravAccel = recipe.add_item(n.gravAccel, invoke_after=_permLims)
-    _calcLims = recipe.add_item(n.calcLims, invoke_after=_gravAccel)
-    _getFlat = recipe.add_item(n.getFlat, invoke_after=_calcLims)
-    _getFlux = recipe.add_item(n.getFlux, invoke_after=_getFlat)
-    _saveFluxBuf = recipe.add_item(n.saveFluxBuf, invoke_after=_getFlux)
-    _updSoln = recipe.add_item(n.updSoln, invoke_after=_getFlux)
-    _reAbund = recipe.add_item(n.reAbund, invoke_after=_updSoln)
-    _doEos = recipe.add_item(n.doEos, invoke_after=_reAbund)
-    _saveSoln = recipe.add_item(n.saveSoln, invoke_after=_doEos)
+    # common nodes inner stage loop
+    _innerStage = _spark_stage(recipe, _stageInit, n)
+
+    _saveSoln = recipe.add_item(n.saveSoln, invoke_after=_innerStage)
 
     _blockEnd = recipe.add_item(n.blockEnd, invoke_after=_saveSoln)
     _stageEnd = recipe.add_item(n.stageEnd, invoke_after=_blockEnd)
