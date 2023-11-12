@@ -10,7 +10,14 @@ class spark_nodes:
         )
 
         # setups (plain code)
-        self.saveFluxBuf = fr.SetupNode(name="saveFluxBuf", tpl="cg-tpl.Hydro_saveFluxBuff.F90")
+        self.saveFluxBuf = fr.WorkNode(
+            name="hy_rk_saveFluxBuf",
+            args=["hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ",
+                  "\n hy_flx", "hy_fly", "hy_flz",
+                  "\n hy_weights", "stage", "hy_fluxCorrect",
+                  "\n blkLimits",
+                  "\n hy_fareaX", "hy_fareaY", "hy_fareaZ"]
+        )
 
         # work nodes
         self.fillGC = fr.WorkNode(
