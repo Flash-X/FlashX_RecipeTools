@@ -196,6 +196,11 @@ class spark_paramesh_nontele_nodes(spark_nodes):
             name="block2", tpl="cg-tpl.do_blocks2.json"
         )
 
+        self.putFlux = fr.WorkNode(
+            name="Grid_putFluxData_block",
+            args=["tileDesc", "hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ", "blkLimits(LOW,:)", "add=hy_addFluxArray(stage)"],
+            startswith="@M hy_DIR_TARGET_update_from([hy_fluxBufX, hy_fluxBufY, hy_fluxBufZ])",
+        )
         self.commFluxes = fr.SetupNode(
             name="commFluxes",
             tpl="cg-tpl.pm4_communicateFluxes.F90"

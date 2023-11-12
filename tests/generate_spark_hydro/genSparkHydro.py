@@ -124,6 +124,7 @@ def pm_nontele(recipe, root):
     # common nodes inner stage loop
     _innerStage = _spark_stage(recipe, _stageInit, n)
 
+    _putFlux = recipe.add_item(n.putFlux, invoke_after=_innerStage)
     _saveSoln = recipe.add_item(n.saveSoln, invoke_after=_innerStage)
 
     _blockEnd = recipe.add_item(n.blockEnd, invoke_after=_saveSoln)
@@ -131,7 +132,7 @@ def pm_nontele(recipe, root):
 
 
     # TODO: missing if(hy_fluxCorrect) here
-    _commFluxes = recipe.add_item(n.commFluxes, invoke_after=_blockEnd)
+    _commFluxes = recipe.add_item(n.commFluxes, invoke_after=_stageEnd)
     # second blocks
     _blockBegin2 = recipe.add_item(n.blockBegin2, invoke_after=_commFluxes)
     _getFluxCorr_block = recipe.add_item(n.getFluxCorr_block, invoke_after=_blockBegin2)
