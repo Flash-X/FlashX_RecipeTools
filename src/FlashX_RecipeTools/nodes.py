@@ -6,15 +6,11 @@ from cgkit.cflow.node import (WorkNode,
                               PlainCodeNode)
 
 class WorkNode(WorkNode):
-    def __init__(self, **kwargs):
+    def __init__(self, startswith="", endswith="", opspec="", **kwargs):
         super().__init__(**kwargs)
-        kwargs.setdefault("startswith", "")
-        kwargs.setdefault("endswith", "")
-        self.startswith = kwargs["startswith"]
-        self.endswith = kwargs["endswith"]
-
-        kwargs.setdefault("opspec", "")
-        self.opspec = kwargs["opspec"]
+        self.startswith = startswith
+        self.endswith = endswith
+        self.opspec = opspec
 
 
 class LeafNode(LeafNode):
@@ -23,26 +19,22 @@ class LeafNode(LeafNode):
 
 
 class SetupNode(PlainCodeNode):
-    def __init__(self, name:str, tpl:str, **kwargs):
+    def __init__(self, name:str, tpl:str, startswith="", endswith="", **kwargs):
         super().__init__(nodeType="SetupNode", **kwargs)
         assert isinstance(name, str), type(name)
         self.name = name
         self.tpl = tpl
-        kwargs.setdefault("startswith", "")
-        kwargs.setdefault("endswith", "")
-        self.startswith = kwargs["startswith"]
-        self.endswith = kwargs["endswith"]
+        self.startswith = startswith
+        self.endswith = endswith
 
 
 class genericBeginNode(ClusterBeginNode):
-    def __init__(self, name:str, tpl:str, **kwargs):
+    def __init__(self, name:str, tpl:str, startswith="", endswith="", **kwargs):
         super().__init__(nodeType="BeginNode")
         self.name = name
         self.tpl = tpl
-        kwargs.setdefault("startswith", "")
-        kwargs.setdefault("endswith", "")
-        self.startswith = kwargs["startswith"]
-        self.endswith = kwargs["endswith"]
+        self.startswith = startswith
+        self.endswith = endswith
         self.returnStackKey = ""
 
 
