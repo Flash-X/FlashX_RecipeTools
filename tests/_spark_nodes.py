@@ -13,10 +13,10 @@ class spark_nodes:
         self.saveFluxBuf = fr.WorkNode(
             name="hy_rk_saveFluxBuf",
             args=["hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ",
-                  "\n hy_flx", "hy_fly", "hy_flz",
-                  "\n hy_weights", "stage", "hy_fluxCorrect",
-                  "\n blkLimits",
-                  "\n hy_fareaX", "hy_fareaY", "hy_fareaZ"]
+                  "\n   hy_flx", "hy_fly", "hy_flz",
+                  "\n   hy_weights", "stage", "hy_fluxCorrect",
+                  "\n   blkLimits",
+                  "\n   hy_fareaX", "hy_fareaY", "hy_fareaZ"]
         )
 
         # work nodes
@@ -38,7 +38,7 @@ class spark_nodes:
         self.gravAccel = fr.WorkNode(
             name="hy_rk_getGraveAccel",
             args=["hy_starState", "hy_grav",
-                  "&\n hy_xCenter", "hy_yCenter", "deltas", "hy_geometry", "blkLimitsGC"
+                  "&\n   hy_xCenter", "hy_yCenter", "deltas", "hy_geometry", "blkLimitsGC"
             ],
         )
         self.calcLims = fr.WorkNode(
@@ -53,22 +53,22 @@ class spark_nodes:
             name="hy_rk_getFaceFlux",
             args=[
                 "hy_starState", "hy_flat3d", "hy_flx", "hy_fly", "hy_flz",
-                "&\n lim", "limgc", "stage",
-                "&\n hy_hybridRiemann", "hy_cvisc", "hy_C_hyp",
-                "&\n hy_tiny", "hy_smalldens", "hy_smallpres", "hy_smallX",
-                "&\n hya_flux", "hya_flat", "hya_shck", "hya_rope", "hya_uPlus", "hya_uMinus",
+                "&\n   lim", "limgc", "stage",
+                "&\n   hy_hybridRiemann", "hy_cvisc", "hy_C_hyp",
+                "&\n   hy_tiny", "hy_smalldens", "hy_smallpres", "hy_smallX",
+                "&\n   hya_flux", "hya_flat", "hya_shck", "hya_rope", "hya_uPlus", "hya_uMinus",
             ],
         )
         self.updSoln = fr.WorkNode(
             name="hy_rk_updateSoln",
             args=[
                 "hy_starState", "hy_tmpState", "rk_coeffs",
-                "&\n hy_grav", "hy_flx", "hy_fly", "hy_flz",
-                "&\n deltas", "hy_fareaX", "hy_fareaY", "hy_fareaZ", "hy_cvol", "hy_xCenter",
-                "&\n hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
-                "&\n hy_geometry",
-                "&\n hy_smallE", "hy_smalldens", "hy_alphaGLM", "hy_C_hyp",
-                "&\n dt", "dtOld", "limits",
+                "&\n   hy_grav", "hy_flx", "hy_fly", "hy_flz",
+                "&\n   deltas", "hy_fareaX", "hy_fareaY", "hy_fareaZ", "hy_cvol", "hy_xCenter",
+                "&\n   hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
+                "&\n   hy_geometry",
+                "&\n   hy_smallE", "hy_smalldens", "hy_alphaGLM", "hy_C_hyp",
+                "&\n   dt", "dtOld", "limits",
             ],
         )
         self.reAbund = fr.WorkNode(
@@ -116,23 +116,23 @@ class spark_amrex_tele_nodes(spark_nodes):
             name="Grid_getFluxCorrData_xtra",
             args=[
                 "tileDesc",
-                "&\n hy_fluxBufX, hy_fluxBufY, hy_fluxBufZ",
-                "&\n blkLimits(LOW,:)",
-                "&\n hy_flx(:,xLo:xHi+1,yLo:yHi    ,zLo:zHi    )",
-                "&\n hy_fly(:,xLo:xHi  ,yLo:yHi+K2D,zLo:zHi    )",
-                "&\n hy_flz(:,xLo:xHi  ,yLo:yHi    ,zLo:zHi+K3D)",
+                "&\n   hy_fluxBufX, hy_fluxBufY, hy_fluxBufZ",
+                "&\n   blkLimits(LOW,:)",
+                "&\n   hy_flx(:,xLo:xHi+1,yLo:yHi    ,zLo:zHi    )",
+                "&\n   hy_fly(:,xLo:xHi  ,yLo:yHi+K2D,zLo:zHi    )",
+                "&\n   hy_flz(:,xLo:xHi  ,yLo:yHi    ,zLo:zHi+K3D)",
             ],
         )
         self.corrSoln = fr.WorkNode(
             name="hy_rk_correctFluxes",
             args=[
                 "Uin", "blkLimits",
-                "&\n hy_flx", "hy_fly", "hy_flz",
-                "&\n deltas", "hy_fareaX", "hy_fareaY", "hy_fareaZ", "hy_cvol", "hy_xCenter",
-                "&\n hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
-                "&\n hy_geometry",
-                "&\n hy_smallE", "hy_smalldens",
-                "&\n dt", "isFlux=.false.",
+                "&\n   hy_flx", "hy_fly", "hy_flz",
+                "&\n   deltas", "hy_fareaX", "hy_fareaY", "hy_fareaZ", "hy_cvol", "hy_xCenter",
+                "&\n   hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
+                "&\n   hy_geometry",
+                "&\n   hy_smallE", "hy_smalldens",
+                "&\n   dt", "isFlux=.false.",
             ],
         )
 
@@ -161,21 +161,21 @@ class spark_paramesh_tele_nodes(spark_nodes):
             name="Grid_getFluxCorrData_block",
             args=[
                 "tileDesc",
-                "&\n hy_fluxBufX, hy_fluxBufY, hy_fluxBufZ",
-                "&\n blkLimits(LOW,:)",
-                "&\n isFluxDensity=(/.true./)",
+                "&\n   hy_fluxBufX, hy_fluxBufY, hy_fluxBufZ",
+                "&\n   blkLimits(LOW,:)",
+                "&\n   isFluxDensity=(/.true./)",
             ],
         )
         self.corrSoln = fr.WorkNode(
             name="hy_rk_correctFluxes",
             args=[
                 "Uin", "blkLimits",
-                "&\n hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ",
-                "&\n deltas", "hy_fareaX", "hy_fareaY", "hy_fareaZ", "hy_cvol", "hy_xCenter",
-                "&\n hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
-                "&\n hy_geometry",
-                "&\n hy_smallE", "hy_smalldens",
-                "&\n dt", "isFlux=.false.",
+                "&\n   hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ",
+                "&\n   deltas", "hy_fareaX", "hy_fareaY", "hy_fareaZ", "hy_cvol", "hy_xCenter",
+                "&\n   hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
+                "&\n   hy_geometry",
+                "&\n   hy_smallE", "hy_smalldens",
+                "&\n   dt", "isFlux=.false.",
             ],
         )
 
@@ -212,21 +212,21 @@ class spark_paramesh_nontele_nodes(spark_nodes):
             name="Grid_getFluxCorrData_block",
             args=[
                 "tileDesc",
-                "&\n hy_fluxBufX, hy_fluxBufY, hy_fluxBufZ",
-                "&\n blkLimits(LOW,:)",
-                "&\n isFluxDensity=(/.false./)",
+                "&\n   hy_fluxBufX, hy_fluxBufY, hy_fluxBufZ",
+                "&\n   blkLimits(LOW,:)",
+                "&\n   isFluxDensity=(/.false./)",
             ],
         )
         self.corrSoln = fr.WorkNode(
             name="hy_rk_correctFluxes",
             args=[
                 "Uin", "blkLimits",
-                "&\n hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ",
-                "&\n deltas", "hy_fareaX", "hy_fareaY", "hy_fareaZ", "hy_cvol", "hy_xCenter",
-                "&\n hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
-                "&\n hy_geometry",
-                "&\n hy_smallE", "hy_smalldens",
-                "&\n dt", "isFlux=.true.",
+                "&\n   hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ",
+                "&\n   deltas", "hy_fareaX", "hy_fareaY", "hy_fareaZ", "hy_cvol", "hy_xCenter",
+                "&\n   hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
+                "&\n   hy_geometry",
+                "&\n   hy_smallE", "hy_smalldens",
+                "&\n   dt", "isFlux=.true.",
             ],
         )
 
