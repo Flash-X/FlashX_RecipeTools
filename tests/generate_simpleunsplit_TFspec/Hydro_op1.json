@@ -44,7 +44,7 @@
         "structure_index": ["CENTER", 1],
         "R": ["{GAMC_VAR}", "{PRES_VAR}", "{DENS_VAR}"]
       },
-      "loAuxC": {"source": "tile_lbound"},
+      "loAuxC": {"source": "lbound", "array": "auxC"},
       "auxC":   {"source": "scratch", "name": "_auxC"}
     }
   },
@@ -63,9 +63,9 @@
       },
       "loU":    {"source": "tile_lbound"},
       "auxC":   {"source": "scratch", "name": "_auxC"},
-      "loAuxC": {"source": "tile_lbound"},
+      "loAuxC": {"source": "lbound", "array": "auxC"},
       "flX":    {"source": "scratch", "name": "_flX"},
-      "loFl":   {"source": "tile_lo"}
+      "loFl":   {"source": "lbound", "array": "flX"}
     }
   },
   "Hydro_computeFluxesHll_Y": {
@@ -82,9 +82,9 @@
       },
       "loU":    {"source": "tile_lbound"},
       "auxC":   {"source": "scratch", "name": "_auxC"},
-      "loAuxC": {"source": "tile_lbound"},
+      "loAuxC": {"source": "lbound", "array": "auxC"},
       "flY":    {"source": "scratch", "name": "_flY"},
-      "loFl":   {"source": "tile_lo"}
+      "loFl":   {"source": "lbound", "array":"flY"}
     }
   },
   "Hydro_computeFluxesHll_Z": {
@@ -101,9 +101,9 @@
       },
       "loU":    {"source": "tile_lbound"},
       "auxC":   {"source": "scratch", "name": "_auxC"},
-      "loAuxC": {"source": "tile_lbound"},
+      "loAuxC": {"source": "lbound", "array": "auxC"},
       "flZ":    {"source": "scratch", "name": "_flZ"},
-      "loFl":   {"source": "tile_lo"}
+      "loFl":   {"source": "lbound", "array": "flZ"}
     }
   },
 
@@ -116,7 +116,7 @@
       "flX":    {"source": "scratch", "name": "_flX"},
       "flY":    {"source": "scratch", "name": "_flY"},
       "flZ":    {"source": "scratch", "name": "_flZ"},
-      "loFl":   {"source": "tile_lo"},
+      "loFl":   {"source": "lbound", "array": "flX"},
       "U":      {"source": "grid_data",
         "structure_index": ["CENTER", 1],
         "RW": ["{DENS_VAR}", "{VELX_VAR}", "{VELY_VAR}", "{VELZ_VAR}", "{ENER_VAR}", "{EINT_VAR}"]
