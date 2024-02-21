@@ -22,7 +22,7 @@ LBOUND = "lbound"
 OP_SPEC_TEMPLATE = {
     "format": ["Milhoja-JSON", "1.0.0"],
     "name": "",
-    "variable_index_base": 0,
+    "variable_index_base": 1,
     "__includes": [],
     "external": {},
     "scratch": {}

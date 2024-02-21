@@ -107,51 +107,40 @@ from pathlib import Path
 #                 } for name in vinfo.names 
 #             } 
 #         }
+def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
+    js = deepcopy(mbc.OP_SPEC_TEMPLATE)
+    js["name"] = op_name
 
+    block_stack = []  # realistically the block stack will not be larger than 1.
+    for line in lines:
+        # update the block stack based on the statement
+        if line.startswith(mbc.DIRECTIVE_LINE + mbc.MILHOJA):
+            tokens = line.lower().split(" ")
+            if tokens[1] == mbc.BEGIN:
+                block_stack.append(tokens[2])
+            elif tokens[1] == mbc.END:
+                if block_stack[-1] != tokens[2]:
+                    print(f"Unexpected block statement type {tokens[2]}")
+                    exit(-1)
+                block_stack.pop()
+            else:
+                print(f"Unrecognized statement {tokens[1]}")
+            continue
 
-# def _parse_htd(macros: dict, line: str, start: bool, JSON: dict, tile_only: bool):
-#     # print(f'Parsing {_HTD}')
-#     if not start:
-#         vinfo = _get_variable_information(macros, line, tile_only)
-#         if tile_only:
-#             JSON['tile_in'] = { 
-#                 **JSON['tile_in'], 
-#                 **{ name: 
-#                     {'type': vinfo.dtype, 
-#                      'extents': vinfo.size_equation,
-#                      'start': vinfo.start1,
-#                      'end': vinfo.end1,
-#                     } for name in vinfo.names } 
-#             }
-#         else:
-#             JSON['constructor'] = { 
-#                 **JSON['constructor'], 
-#                 **{ name: vinfo.dtype for name in vinfo.names} 
-#             }
+        if debug and block_stack:
+            print(f"Current block: {block_stack[-1]}")
 
+        if block_stack:
+            current = block_stack[-1]
 
-# def _parse_both(macros: dict, line: str, start: bool, JSON: dict, tile: bool):
-#     # print(f'Parsing {_BOTH}')
-#     if not start:
-#         vinfo = _get_variable_information(macros, line, tile)
-#         JSON['tile_in_out'] = { 
-#             **JSON['tile_in_out'], 
-#             **{ name: 
-#                 {'type': vinfo.dtype, 
-#                  'extents': vinfo.size_equation,
-#                 #  TODO: how to insert default variable masking from existing information? Can potentially 
-#                  'start_in': vinfo.start1,
-#                  'start_out': vinfo.start2,
-#                  'end_in': vinfo.end1,
-#                  'end_out': vinfo.end2
-#                 } for name in vinfo.names 
-#             } 
-#         }
+    return js
+
 
 def __get_all_interface_lines(fptr, debug) -> list:
     milhoja_block_stack = []
     lines = []
     full_line = ""
+    # todo:: call strip() less times
 
     # for each line in the file...
     for line in fptr:
@@ -170,11 +159,12 @@ def __get_all_interface_lines(fptr, debug) -> list:
                     except:
                         print(f"Missing start or end block statement. Line: {line}")
                         exit(-1)
+                assert len(line.strip().split(' ')) == 3, "Missing whitespace in directive statement."
                 lines.append(line.strip())
                 continue
 
-        # ignore lines if the stack is empty
-        if not milhoja_block_stack or not line:
+        # ignore lines if the stack is empty or if the line is empty
+        if not milhoja_block_stack or not line.strip():
             continue
 
         if full_line:
@@ -195,11 +185,12 @@ def __get_all_interface_lines(fptr, debug) -> list:
     return lines
 
 
-def __process_interface_file(file: Path, debug: bool) -> dict:
+def __process_interface_file(name: str, file: Path, debug: bool) -> dict:
     """
     Process an interface file and return a filled dictionary.
     """
     lines = []
+    # get all lines that are relevent to the op spec (AKA milhoja blocks.)
     with open(file, 'r') as fptr:
         lines = __get_all_interface_lines(fptr, debug)
 
@@ -207,14 +198,12 @@ def __process_interface_file(file: Path, debug: bool) -> dict:
         for line in lines:
             print(line)
 
-    opspec = deepcopy(mbc.OP_SPEC_TEMPLATE)
-    for line in lines:
-        ...
-
+    interface_name = os.path.basename(file)
+    opspec = __create_op_spec_json(lines, interface_name, name, debug)
     return opspec
 
 
-def _dump_to_json(dictionary: dict, file_path: Path):
+def __dump_to_json(dictionary: dict, file_path: Path):
     """Dumps a *dictionary* to a json file based on *name*."""
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(dictionary, file, ensure_ascii=False, indent=4)
@@ -222,12 +211,13 @@ def _dump_to_json(dictionary: dict, file_path: Path):
 
 def generate_op_spec(name: str, interface_file, debug: bool):
     """
-    Main driver function to parse data module. Assumes that the data module as well as constants defined in the data module are
-    contained within the same directory.
+    Process the interface file to create the op specification.
+    Assumes that the file has been run through the C preprocessor if
+    necessary and that the appropriate setup has been done for determining
+    macros. 
 
-    :param str name: The name of the output file.
-    :param str tinfo: The name of the task function information file.
-    :param str module: The path to the data module to parse.
+    :param str name: The name of the op spec.
+    :param str interface_file: The path to the interface file.
     """
     # get interface path
     interface_path = Path(interface_file).resolve()
@@ -242,16 +232,8 @@ def generate_op_spec(name: str, interface_file, debug: bool):
     # call C++ preprocessor?
 
     # process file
-    op_spec = __process_interface_file(interface_path, debug)
-
-    # processed = module + '.jsonpreprocessed'
-    # use c preprocessor to get macros.
-    # macros = f'{name}.macros'
-    # r = subprocess.run(['cpp', '-dM', '-o', macros, module])
-    # if r.returncode != 0:
-    #     print( '[JSON Generator] Failed to get macros.')
-    #     print(f'                 path: {module}')
-    # macro_dict = macro_util.parse_macros_file(macros)
+    op_spec = __process_interface_file(name, interface_path, debug)
+    __dump_to_json(op_spec, op_spec_path)
 
     # then process the data module, so no need to do basic replacing myself.
     # r = subprocess.run(['cpp', '-E', module, processed])
