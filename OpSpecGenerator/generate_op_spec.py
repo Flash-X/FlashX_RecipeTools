@@ -167,6 +167,12 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
                     js[name]["argument_list"] = args
                     js[name].update(sbr_defs)
 
+                    if set(args) != set(sbr_defs.keys()):
+                        print("Dummy argument definitions missing in milhoja block.")
+                        print("Args:", args)
+                        print("Defs:", list(sbr_defs.keys()))
+                        exit(-1)
+
     return js
 
 
