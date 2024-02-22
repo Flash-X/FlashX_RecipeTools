@@ -1,13 +1,14 @@
 """
 A list of constants that contain keywords for parsing milhoja directives.
 """
+from collections import OrderedDict
 
 # DIRECTIVE SYMBOLS
 DIRECTIVE_LINE = "!$"
 BEGIN = "begin"
 END = "end"
 COMMON = "common"
-MACRO = "macro"
+SUBROUTINE = "subroutine"
 CONTINUE = "&"
 MILHOJA = "milhoja"
 
