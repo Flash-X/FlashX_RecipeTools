@@ -3,6 +3,11 @@ A list of constants that contain keywords for parsing milhoja directives.
 """
 from collections import OrderedDict
 
+# PARSING CONSTANTS
+MAX_RANGE_LENGTH = 1000
+# for ensuring that a given r/w/rw range consists only of numeric values and parenthesis.
+RANGE_REGEX = r'[\(\)\+\-\*\/\d\ ]*'
+
 # DIRECTIVE SYMBOLS
 DIRECTIVE_LINE = "!$"
 BEGIN = "begin"
