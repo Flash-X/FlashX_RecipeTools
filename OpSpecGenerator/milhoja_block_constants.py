@@ -18,7 +18,10 @@ CONTINUE = "&"
 MILHOJA = "milhoja"
 
 # VARIABLE SYMBOLS
-RW_SYMBOLS = {"R", "W", "RW"}
+READ = "R"
+WRITE = "W"
+READWRITE = "RW"
+RW_SYMBOLS = {READ, WRITE, READWRITE}
 EXTENTS = "extents"
 DTYPE = "type"
 SOURCE = "source"

@@ -16,7 +16,7 @@ from pathlib import Path
 from warnings import warn
 
 
-def evaluate_range_expression(line: str) -> int:
+def evaluate_range_end_expression(line: str) -> int:
     """
     Evaluates simple math expressions, Shunting yard algorithm implementation.
     https://en.wikipedia.org/wiki/Shunting_yard_algorithm
@@ -60,32 +60,36 @@ def evaluate_range_expression(line: str) -> int:
         assert top != "(", "Invalid statement"
         out_queue.append(top)
 
-    print("RPN:", out_queue)
+    # convert double minus signs into plus sign
+    # bad implementation, missing edge cases
+    idx = 0
+    while idx < len(out_queue):
+        if out_queue[idx] == '-' and idx + 1 < len(out_queue):
+            if out_queue[idx+1] == '-':
+                out_queue[idx] = "+"
+                del out_queue[idx+1]
+        idx += 1
 
-    running = 0
-    operands = []
+    print("PN:", out_queue)
+
+    assert isinstance(out_queue[0], int)
+    running = out_queue[0]
+    operand = 0
     # next, evaluate expression in the out_queue
-    for idx,token in enumerate(out_queue):
-        if token.isdigit():
-            operands.append(token)
-            continue
-        
-        elif token == '+':
-            ...
-
+    for idx,token in enumerate(out_queue[1:]):
+        if token == '+':
+            running = running + operand
         elif token == '-':
-            ...
-
+            running = running - operand
         elif token == '*':
-            ...
-
+            running = running * operand
         elif token == '/':
-            ...
-
+            running = running / operand
+            running = int(running)
         elif token == '**':
-            ...
-
-        operands = []
+            running = running ** operand
+        else:
+            operand = token
 
     return running
 
@@ -123,8 +127,8 @@ def format_rw_list(line: str) -> list:
         if lo_success and hi_success:
             rng = []
             for ex in [low,high]:
-                rng.append(evaluate_range_expression(ex))
-            rw_range.extend(list(range(rng[0], rng[1])))
+                rng.append(evaluate_range_end_expression(ex))
+            rw_range.extend(list(range(rng[0], rng[1]+1)))
         else:
             warn(f"Expression {expr} is not valid. Ignoring.")
 
@@ -242,6 +246,11 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
             # line is a milhoja directive so we process in a specific way.
             if line.startswith(mbc.DIRECTIVE_LINE):
                 name,tokens = __get_directive_tokens(line, debug)
+
+                for rw_key in mbc.RW_SYMBOLS:
+                    if rw_key in tokens:
+                        tokens[rw_key] = format_rw_list(tokens[rw_key])
+
                 if in_common:
                     assert name not in common_defs, f"{name} defined twice."
                     common_defs[name] = tokens
