@@ -27,7 +27,7 @@ def evaluate_range_end_expression(line: str) -> int:
     op_stack = []
     out_queue = []
 
-    print("Tokens:", tokens)
+    # print("Tokens:", tokens)
 
     for token in tokens:
         if token.isdigit():
@@ -69,8 +69,6 @@ def evaluate_range_end_expression(line: str) -> int:
                 out_queue[idx] = "+"
                 del out_queue[idx+1]
         idx += 1
-
-    print("PN:", out_queue)
 
     assert isinstance(out_queue[0], int)
     running = out_queue[0]
@@ -215,6 +213,7 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
     Create the operation specification json from the list of milhoja directive lines.
     Does not support nested blocks.
     """
+    subroutines = []
     common_defs = {}
     sbr_defs = {}
     js = deepcopy(mbc.OP_SPEC_TEMPLATE)
@@ -287,18 +286,46 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
                     arg_start = info.find("(")
                     name = info[:arg_start]
                     args = [arg.strip() for arg in info[arg_start+1:-1].split(',')]
+                    subroutines.append(name)
 
                     # here we assume that the subroutine argument list is complete.
                     js[name] = {}
                     js[name]["interface_file"] = intf_name
                     js[name]["argument_list"] = args
-                    js[name].update(sbr_defs)
+                    js[name]["argument_specifications"] = {}
+                    js[name]["argument_specifications"].update(sbr_defs)
 
                     if set(args) != set(sbr_defs.keys()):
                         raise Exception(
                             "Dummy argument definitions missing in milhoja block.\n"
                             f"Args: {args}\nDefs:, {list(sbr_defs.keys())}"
                         )
+
+    # move any scratch or external data in a subroutine to the outer 
+    for routine in subroutines:
+        arg_spec = js[routine]["argument_specifications"]
+        # print(arg_spec)
+        for arg,spec in arg_spec.items():
+            # here, we need to check the specific source of the variable
+            # to determine if it needs to be moved outside of the 
+            # subroutine spec.
+            if spec["source"] in {"external", "scratch"} and \
+            arg not in js["external"] and arg not in js["scratch"]:
+                identifier = f"_{routine}_{arg}"
+                # we check if a specific identifier exists and that the variable
+                # is not already associated with a specific name.
+                if identifier not in js[spec["source"]] and "name" not in spec:
+                    var_info = {"source": spec["source"], "name": identifier}
+                    js[spec["source"]][identifier] = spec
+                    arg_spec[arg] = var_info
+
+    # clean op spec before returning
+    # remove extra information from scratch and external sections
+    for shared in {"external", "scratch"}:
+        for var in js[shared]:
+            del js[shared][var]["source"]
+
+    # print(json.dumps(js,ensure_ascii=False, indent=4))
 
     return js
 
@@ -412,6 +439,7 @@ def generate_op_spec(name: str, interface_file, debug=False, call_cpp=False):
     # process file
     op_spec = __process_interface_file(name, interface_path, if_name, debug)
     __dump_to_json(op_spec, op_spec_path)
+    return op_spec_path
 
 
 if __name__ == '__main__':
