@@ -10,48 +10,47 @@ import milhoja
 import milhoja_block_constants as mbc
 import sys
 import ast
+import operator
 
 from copy import deepcopy
 from pathlib import Path
 from warnings import warn
+from milhoja_block_constants import OPERATIONS
 
 
-def evaluate_range_end_expression(line: str) -> int:
+def evaluate_simple_expression(line: str) -> int:
     """
     Evaluates simple math expressions, Shunting yard algorithm implementation.
     https://en.wikipedia.org/wiki/Shunting_yard_algorithm
+
+    Can be optimized to reduce -- to + when tokens are parsed
     """
     # get all tokens in expression
     tokens = re.findall(r'\*\*|[\+\-\*\\\(\)]|\d+', line)
-    ops = {'+': (1, 'L'), '-': (1, 'L'), '*': (2, 'L'), '/': (2, 'L'), '**': (3, 'R')}
+    # this should probably be a record or class struct instead of a tuple.
+    ops = OPERATIONS
     op_stack = []
     out_queue = []
 
-    # print("Tokens:", tokens)
-
     for token in tokens:
+        # print("Token", token)
         if token.isdigit():
             out_queue.append(int(token))
 
         elif token in ops:
-            topop = op_stack[-1]
-            while topop != "(" and \
-            (ops[topop][0] > ops[token][0] or (ops[topop][0] == ops[token][0] and ops[token][1] == 'L')):
-                out_queue.append(topop)
-                op_stack.pop()
-                topop = op_stack[-1]
+            if op_stack:
+                while op_stack and op_stack[-1] != "(" and \
+                (ops[op_stack[-1]]["priority"] > ops[token]["priority"] or (ops[op_stack[-1]]["priority"] == ops[token]["side"] and ops[token]["side"] == 'L')):
+                    out_queue.append(op_stack.pop())
             op_stack.append(token)
 
         elif token == "(":
             op_stack.append(token)
 
         elif token == ")":
-            op = op_stack[-1]
-            while op != "(":
+            while op_stack and op_stack[-1] != "(":
                 assert op_stack
-                out_queue.append(op)
-                op_stack.pop()
-                op = op_stack[-1]
+                out_queue.append(op_stack.pop())
             assert op_stack[-1] == "("
             op_stack = op_stack[:-1]
 
@@ -60,36 +59,18 @@ def evaluate_range_end_expression(line: str) -> int:
         assert top != "(", "Invalid statement"
         out_queue.append(top)
 
-    # convert double minus signs into plus sign
-    # bad implementation, missing edge cases
-    idx = 0
-    while idx < len(out_queue):
-        if out_queue[idx] == '-' and idx + 1 < len(out_queue):
-            if out_queue[idx+1] == '-':
-                out_queue[idx] = "+"
-                del out_queue[idx+1]
-        idx += 1
-
     assert isinstance(out_queue[0], int)
-    running = out_queue[0]
-    operand = 0
-    # next, evaluate expression in the out_queue
-    for idx,token in enumerate(out_queue[1:]):
-        if token == '+':
-            running = running + operand
-        elif token == '-':
-            running = running - operand
-        elif token == '*':
-            running = running * operand
-        elif token == '/':
-            running = running / operand
-            running = int(running)
-        elif token == '**':
-            running = running ** operand
+    running = []
+    # next, evaluate the expression held by out_queue.
+    for token in out_queue:
+        if token in ops:
+            op2 = running.pop()
+            op1 = running.pop()
+            running.append(ops[token]["function"](op1, op2))
         else:
-            operand = token
+            running.append(token)
 
-    return running
+    return running[0]
 
 
 def format_rw_list(line: str) -> list:
@@ -125,7 +106,7 @@ def format_rw_list(line: str) -> list:
         if lo_success and hi_success:
             rng = []
             for ex in [low,high]:
-                rng.append(evaluate_range_end_expression(ex))
+                rng.append(evaluate_simple_expression(ex))
             rw_range.extend(list(range(rng[0], rng[1]+1)))
         else:
             warn(f"Expression {expr} is not valid. Ignoring.")
@@ -219,29 +200,27 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
     js = deepcopy(mbc.OP_SPEC_TEMPLATE)
     js["name"] = op_name
 
-    current_subroutine = ""
-    current_routine_dict = {}
-    block_stack = []  # realistically the block stack will not be larger than 1.
+    current_block_tokens = set()
     for line in lines:
         # update the block stack based on the statement
         if line.startswith(mbc.DIRECTIVE_LINE + mbc.MILHOJA):
-            tokens = line.lower().split(" ")
-            if tokens[1] == mbc.BEGIN:
-                block_stack.append(tokens[2])
-            elif tokens[1] == mbc.END:
-                if block_stack[-1] != tokens[2]:
-                    raise 
-                    print(f"Unexpected block statement type {tokens[2]}")
-                    exit(-1)
-                block_stack.pop()
+            tokens = set(line.lower().split(" "))
+            if mbc.BEGIN in tokens:
+                if current_block_tokens:
+                    raise Exception(f"Nested block statements not allowed: {line}")
+                current_block_tokens = tokens
+            elif mbc.END in tokens:
+                if current_block_tokens == set(tokens):
+                    raise Exception(f"Nested block statements are not allowed: {line}")
+                current_block_tokens = set()
                 sbr_defs = {}
             else:
-                print(f"Unrecognized statement {tokens[1]}")
+                print(f"Unrecognized statement: {line}")
             continue
 
-        if block_stack:
-            current = block_stack[-1]
-            in_common = current.lower() == mbc.COMMON
+        # ensure we are inside a milhoja directive block
+        if current_block_tokens:
+            in_common = mbc.COMMON in current_block_tokens
             # line is a milhoja directive so we process in a specific way.
             if line.startswith(mbc.DIRECTIVE_LINE):
                 name,tokens = __get_directive_tokens(line, debug)
@@ -304,8 +283,21 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
     # move any scratch or external data in a subroutine to the outer 
     for routine in subroutines:
         arg_spec = js[routine]["argument_specifications"]
-        # print(arg_spec)
         for arg,spec in arg_spec.items():
+
+            # Evaluate expressions in the extents string if the extents
+            # is valid.
+            exts = spec.get("extents", None)
+            print(exts)
+            if exts and exts != "()":
+                # extents guaranteed to be surrounded be parens and be comma
+                # separated.
+                updated_exts = "(" + \
+                    ','.join([str(evaluate_simple_expression(expr)) for expr in exts[1:-1].split(',')]) + \
+                    ")"
+                print(updated_exts)
+                arg_spec[arg]["extents"] = updated_exts
+
             # here, we need to check the specific source of the variable
             # to determine if it needs to be moved outside of the 
             # subroutine spec.
@@ -352,7 +344,6 @@ def __get_all_interface_lines(fptr, debug) -> list:
                         milhoja_block_stack.pop()
                     except:
                         raise Exception(f"Missing start or end block statement. Line: {line}")
-                assert len(line.strip().split(' ')) == 3, "Missing whitespace in directive statement."
                 lines.append(line.strip())
                 continue
 

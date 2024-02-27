@@ -1,6 +1,8 @@
 """
 A list of constants that contain keywords for parsing milhoja directives.
 """
+import operator
+
 from collections import OrderedDict
 
 # PARSING CONSTANTS
@@ -9,7 +11,7 @@ MAX_RANGE_LENGTH = 1000
 RANGE_REGEX = r'[\(\)\+\-\*\/\d\ ]*'
 
 # DIRECTIVE SYMBOLS
-DIRECTIVE_LINE = "!$"
+DIRECTIVE_LINE = "!!"
 BEGIN = "begin"
 END = "end"
 COMMON = "common"
@@ -36,4 +38,33 @@ OP_SPEC_TEMPLATE = {
     "scratch": {}
 
     # functions go here.
+}
+
+# OPERATORS FOR MATH PARSING
+OPERATIONS = {
+    '+': {
+        "priority": 1,
+        "side": 'L',
+        "function": operator.add
+    },
+    '-': {
+        "priority": 1,
+        "side": 'L',
+        "function": operator.sub
+    },
+    '*': {
+        "priority": 2,
+        "side": 'L', 
+        "function": operator.mul
+    },
+    '/': {
+        "priority": 2,
+        "side": 'L',
+        "function": operator.floordiv  # no floats!
+    },
+    '**': {
+        "priority": 3,
+        "side": 'R',
+        "function": operator.pow
+    }
 }
