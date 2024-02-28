@@ -229,6 +229,16 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
                     if rw_key in tokens:
                         tokens[rw_key] = format_rw_list(tokens[rw_key])
 
+                # Process extents and update the tokens dictionary.
+                exts = tokens.get("extents", "()")
+                if exts != "()":
+                    # extents guaranteed to be surrounded be parens and be comma separated.
+                    exts = \
+                        "(" + ','.join([str(evaluate_simple_expression(expr)) for expr in exts[1:-1].split(',')]) + ")"
+                    print(exts)
+                if "source" in tokens and tokens["source"] in {"external", "scratch"}:
+                    tokens["extents"] = exts
+
                 if in_common:
                     assert name not in common_defs, f"{name} defined twice."
                     common_defs[name] = tokens
@@ -239,10 +249,7 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
                         idx = __format_structure_index(idx)
                         common_defs[name]["structure_index"] = idx
 
-                    # special check to 
                     if tokens["source"] in {"external", "scratch"}:
-                        if mbc.EXTENTS not in tokens:
-                            tokens["extents"] = "()"
                         js[tokens["source"]][name] = tokens
 
                 else:
@@ -284,20 +291,6 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
     for routine in subroutines:
         arg_spec = js[routine]["argument_specifications"]
         for arg,spec in arg_spec.items():
-
-            # Evaluate expressions in the extents string if the extents
-            # is valid.
-            exts = spec.get("extents", None)
-            print(exts)
-            if exts and exts != "()":
-                # extents guaranteed to be surrounded be parens and be comma
-                # separated.
-                updated_exts = "(" + \
-                    ','.join([str(evaluate_simple_expression(expr)) for expr in exts[1:-1].split(',')]) + \
-                    ")"
-                print(updated_exts)
-                arg_spec[arg]["extents"] = updated_exts
-
             # here, we need to check the specific source of the variable
             # to determine if it needs to be moved outside of the 
             # subroutine spec.
@@ -317,7 +310,7 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
         for var in js[shared]:
             del js[shared][var]["source"]
 
-    # print(json.dumps(js,ensure_ascii=False, indent=4))
+    print(json.dumps(js,ensure_ascii=False, indent=4))
 
     return js
 
