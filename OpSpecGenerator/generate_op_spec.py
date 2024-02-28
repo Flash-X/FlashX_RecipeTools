@@ -296,7 +296,8 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
             # subroutine spec.
             if spec["source"] in {"external", "scratch"} and \
             arg not in js["external"] and arg not in js["scratch"]:
-                identifier = f"_{routine}_{arg}"
+                # identifier = f"_{routine}_{arg}"
+                identifier = f"_{arg}"
                 # we check if a specific identifier exists and that the variable
                 # is not already associated with a specific name.
                 if identifier not in js[spec["source"]] and "name" not in spec:
