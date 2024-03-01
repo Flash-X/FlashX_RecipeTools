@@ -25,8 +25,19 @@ def evaluate_simple_expression(line: str) -> int:
 
     Can be optimized to reduce -- to + when tokens are parsed
     """
+    print("Line:", line)
     # get all tokens in expression
     tokens = re.findall(r'\*\*|[\+\-\*\\\(\)]|\d+', line)
+
+    # ensure that all tokens were found by comparing the size of the original
+    # string with no spaces to the sum of all token sizes. If the sums are
+    # different that means there's an invalid string inside of the extents
+    # argument.
+    tokens_size = sum([len(token) for token in tokens])
+    line_size = len(line.strip().replace(' ', ''))
+    if tokens_size != line_size:
+        raise Exception(f"Invalid tokens inside of {line}")
+
     # this should probably be a record or class struct instead of a tuple.
     ops = OPERATIONS
     op_stack = []
@@ -40,7 +51,9 @@ def evaluate_simple_expression(line: str) -> int:
         elif token in ops:
             if op_stack:
                 while op_stack and op_stack[-1] != "(" and \
-                (ops[op_stack[-1]]["priority"] > ops[token]["priority"] or (ops[op_stack[-1]]["priority"] == ops[token]["side"] and ops[token]["side"] == 'L')):
+                (ops[op_stack[-1]]["priority"] > ops[token]["priority"] or \
+                (ops[op_stack[-1]]["priority"] == ops[token]["side"] and \
+                ops[token]["side"] == 'L')):
                     out_queue.append(op_stack.pop())
             op_stack.append(token)
 
@@ -59,14 +72,28 @@ def evaluate_simple_expression(line: str) -> int:
         assert top != "(", "Invalid statement"
         out_queue.append(top)
 
-    assert isinstance(out_queue[0], int)
+    # replace double minus signs with +
+    i = 0
+    replace = []
+    while i < len(out_queue)-1:
+        if out_queue[i] == '-' and out_queue[i+1] == '-':
+            out_queue[i] = "+"
+            del out_queue[i+1]
+        i += 1
+
     running = []
+    print(out_queue)
     # next, evaluate the expression held by out_queue.
     for token in out_queue:
+        print(f"token: {token}")
+        print(f"state: {running}")
         if token in ops:
             op2 = running.pop()
+            print("Right:", op2)
             op1 = running.pop()
+            print("Left:", op1)
             running.append(ops[token]["function"](op1, op2))
+            print(running)
         else:
             running.append(token)
 
@@ -106,6 +133,7 @@ def format_rw_list(line: str) -> list:
         if lo_success and hi_success:
             rng = []
             for ex in [low,high]:
+                print("Expression:", ex)
                 rng.append(evaluate_simple_expression(ex))
             rw_range.extend(list(range(rng[0], rng[1]+1)))
         else:
