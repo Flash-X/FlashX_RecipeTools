@@ -4,30 +4,36 @@
   "name": "Hydro_op1",
   "variable_index_base": 1,
 
+  "__includes": ["Simulation.fypp"],
+
   "external": {
     "_dt": {"type": "real",
       "extents": "()"
     },
     "_eosMode": {"type": "integer",
-      "extents": "()"
+      "extents": "()",
+      "application_specific": {
+        "module": "Hydro_data",
+        "variable_name": "hy_eosMode_after"
+      }
     }
   },
 
   "scratch": {
     "_auxC": {"type": "real",
-      "extents": "({NXB+2*K1D}, {NYB+2*K2D}, {NZB+2*K3D})",
-      "lbound": "(tile_lo) - ({K1D}, {K2D}, {K3D})"
+      "extents": "(${NXB+2*K1D}$, ${NYB+2*K2D}$, ${NZB+2*K3D}$)",
+      "lbound": "(tile_lo) - (${K1D}$, ${K2D}$, ${K3D}$)"
     },
     "_flX":  {"type": "real",
-      "extents": "({NXB+1}, {NYB}, {NZB}, {NFLUXES})",
+      "extents": "(${NXB+1}$, ${NYB}$, ${NZB}$, ${NFLUXES}$)",
       "lbound":  "(tile_lo, 1)"
     },
     "_flY":  {"type": "real",
-      "extents": "({NXB}, {NYB+1}, {NZB}, {NFLUXES})",
+      "extents": "(${NXB}$, ${NYB+1}$, ${NZB}$, ${NFLUXES}$)",
       "lbound":  "(tile_lo, 1)"
     },
     "_flZ":  {"type": "real",
-      "extents": "({NXB}, {NYB}, {NZB+1}, {NFLUXES})",
+      "extents": "(${NXB}$, ${NYB}$, ${NZB+1}$, ${NFLUXES}$)",
       "lbound":  "(tile_lo, 1)"
     }
   },
@@ -42,7 +48,7 @@
       "loU":    {"source": "tile_lbound"},
       "U":      {"source": "grid_data",
         "structure_index": ["CENTER", 1],
-        "R": ["{GAMC_VAR}", "{PRES_VAR}", "{DENS_VAR}"]
+        "R": ["${GAMC_VAR}$", "${PRES_VAR}$", "${DENS_VAR}$"]
       },
       "loAuxC": {"source": "lbound", "array": "auxC"},
       "auxC":   {"source": "scratch", "name": "_auxC"}
@@ -59,7 +65,7 @@
       "deltas": {"source": "tile_deltas"},
       "U":      {"source": "grid_data",
         "structure_index": ["CENTER", 1],
-        "R": ["{DENS_VAR}", "{VELX_VAR}", "{VELY_VAR}", "{VELZ_VAR}", "{PRES_VAR}"]
+        "R": ["${DENS_VAR}$", "${VELX_VAR}$", "${VELY_VAR}$", "${VELZ_VAR}$", "${PRES_VAR}$"]
       },
       "loU":    {"source": "tile_lbound"},
       "auxC":   {"source": "scratch", "name": "_auxC"},
@@ -78,7 +84,7 @@
       "deltas": {"source": "tile_deltas"},
       "U":      {"source": "grid_data",
         "structure_index": ["CENTER", 1],
-        "R": ["{DENS_VAR}", "{VELX_VAR}", "{VELY_VAR}", "{VELZ_VAR}", "{PRES_VAR}"]
+        "R": ["${DENS_VAR}$", "${VELX_VAR}$", "${VELY_VAR}$", "${VELZ_VAR}$", "${PRES_VAR}$"]
       },
       "loU":    {"source": "tile_lbound"},
       "auxC":   {"source": "scratch", "name": "_auxC"},
@@ -97,7 +103,7 @@
       "deltas": {"source": "tile_deltas"},
       "U":      {"source": "grid_data",
         "structure_index": ["CENTER", 1],
-        "R": ["{DENS_VAR}", "{VELX_VAR}", "{VELY_VAR}", "{VELZ_VAR}", "{PRES_VAR}"]
+        "R": ["${DENS_VAR}$", "${VELX_VAR}$", "${VELY_VAR}$", "${VELZ_VAR}$", "${PRES_VAR}$"]
       },
       "loU":    {"source": "tile_lbound"},
       "auxC":   {"source": "scratch", "name": "_auxC"},
@@ -119,7 +125,7 @@
       "loFl":   {"source": "lbound", "array": "flX"},
       "U":      {"source": "grid_data",
         "structure_index": ["CENTER", 1],
-        "RW": ["{DENS_VAR}", "{VELX_VAR}", "{VELY_VAR}", "{VELZ_VAR}", "{ENER_VAR}", "{EINT_VAR}"]
+        "RW": ["${DENS_VAR}$", "${VELX_VAR}$", "${VELY_VAR}$", "${VELZ_VAR}$", "${ENER_VAR}$", "${EINT_VAR}$"]
       },
       "loU":    {"source": "tile_lbound"}
     }
@@ -133,8 +139,8 @@
       "limits": {"source": "tile_interior"},
       "U":      {"source": "grid_data",
         "structure_index": ["CENTER", 1],
-        "R": ["{DENS_VAR}", "{EINT_VAR}", "{GAMC_VAR}"],
-        "W": ["{PRES_VAR}", "{TEMP_VAR}"]
+        "R": ["${DENS_VAR}$", "${EINT_VAR}$", "${GAMC_VAR}$"],
+        "W": ["${PRES_VAR}$", "${TEMP_VAR}$"]
       }
     }
   }

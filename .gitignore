@@ -1,4 +1,5 @@
 tests/**/__*
+examples/**/__*
 
 ### Python
 # Byte-compiled / optimized / DLL files

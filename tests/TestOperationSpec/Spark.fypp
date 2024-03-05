@@ -1,0 +1,38 @@
+#:include "Simulation.fypp"
+#:include "constants.fypp"
+#:set HY_DENS=1
+#:set HY_VELX=2
+#:set HY_VELY=3
+#:set HY_VELZ=4
+#:set HY_PRES=5
+#:set HY_GAMC=6
+#:set HY_RHOE=7
+#:if defined('SPARK_GLM')
+#:set HY_MAGX=8
+#:set HY_MAGY=9
+#:set HY_MAGZ=10
+#:set HY_PSIB=11
+#:set HY_NUM_VARS=11
+#:else
+#:set HY_NUM_VARS=7
+#:endif
+#:set HY_MASS=1
+#:set HY_XMOM=2
+#:set HY_YMOM=3
+#:set HY_ZMOM=4
+#:set HY_ENER=5
+#:if defined('SPARK_GLM')
+#:set HY_FMGX=6
+#:set HY_FMGY=7
+#:set HY_FMGZ=8
+#:set HY_FPSI=9
+#:set HY_NUM_FLUX=9
+#:else
+#:set HY_NUM_FLUX=5
+#:endif
+#:set NRECON=HY_NUM_VARS+NSPECIES+NMASS_SCALARS
+#:if defined('HY_RK3')
+#:set MAXSTAGE=3
+#:else     
+#:set MAXSTAGE=2
+#:endif

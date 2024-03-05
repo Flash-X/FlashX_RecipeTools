@@ -1,0 +1,7 @@
+2023-12-16 19:10:48.559 | INFO     | FlashX_RecipeTools.TimeStepRecipe.TimeStepRecipe:begin_orchestration:76 - begin orchestration
+2023-12-16 19:10:48.560 | INFO     | FlashX_RecipeTools.TimeStepRecipe.TimeStepRecipe:add_work:66 - adding WorkNode(Hydro_op1::Hydro_computeSoundSpeedHll)
+2023-12-16 19:10:48.560 | INFO     | FlashX_RecipeTools.TimeStepRecipe.TimeStepRecipe:add_work:66 - adding WorkNode(Hydro_op1::Hydro_computeFluxesHll_X)
+2023-12-16 19:10:48.560 | INFO     | FlashX_RecipeTools.TimeStepRecipe.TimeStepRecipe:add_work:66 - adding WorkNode(Hydro_op1::Hydro_computeFluxesHll_Y)
+2023-12-16 19:10:48.560 | INFO     | FlashX_RecipeTools.TimeStepRecipe.TimeStepRecipe:add_work:66 - adding WorkNode(Hydro_op1::Hydro_updateSolutionHll)
+2023-12-16 19:10:48.560 | INFO     | FlashX_RecipeTools.TimeStepRecipe.TimeStepRecipe:add_work:66 - adding WorkNode(Hydro_op1::Eos_wrapped)
+2023-12-16 19:10:48.560 | INFO     | FlashX_RecipeTools.TimeStepRecipe.TimeStepRecipe:end_orchestration:87 - end orchestration of node 1

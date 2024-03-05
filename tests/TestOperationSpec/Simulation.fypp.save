@@ -1,0 +1,133 @@
+#:set CONSTANT_ZERO=0
+#:set CONSTANT_ONE=1
+#:set CONSTANT_TWO=2
+
+#:set NDIM=2
+#:set MAXBLOCKS=1000
+
+#:if 0
+  **************************************************************************
+  The #:set definitions below indicate the index at which a grid scope 
+  variable is located in the 'unk' (unknowns) data structure.  Property 
+  variables are denoted with '_VAR' following the variable name.  Species 
+  are also stored in the unk datastructure.  They are
+  denoted with '_SPEC' following the species name.
+
+  NPROP_VARS = the total number of grid property variables in the simulation
+               (ie those ending in _VAR)
+  NSPECIES = the number of species in the simulation 
+             (ie those ending in _SPEC)
+  NMASS_SCALARS = the number of mass scalars in a simulation
+  NMASS_SCALAR_GROUPS = # of groups mass scalars to be renormed are split into
+  NUNK_VARS = NPROP_VARS + NSPECIES + NMASS_SCALARS
+  SPECIES_BEGIN = the index at which the first species is stored in the 
+                  unk data structure
+  SPECIES_BEGIN = NPROP_VARS + 1
+  **************************************************************************
+#:endif
+
+#:set PROP_VARS_BEGIN=CONSTANT_ONE
+#:set UNK_VARS_BEGIN=(PROP_VARS_BEGIN)
+
+#:set DENA_VAR=1
+#:set DENS_VAR=2
+#:set EINA_VAR=3
+#:set EINT_VAR=4
+#:set ENER_VAR=5
+#:set ENRA_VAR=6
+#:set GAMC_VAR=7
+#:set GAME_VAR=8
+#:set PRES_VAR=9
+#:set PRSA_VAR=10
+#:set SHOK_VAR=11
+#:set TEMP_VAR=12
+#:set VELX_VAR=13
+#:set VELY_VAR=14
+#:set VELZ_VAR=15
+#:set VLXA_VAR=16
+#:set VLYA_VAR=17
+#:set VLZA_VAR=18
+
+#:set NPROP_VARS=18
+#:set PROP_VARS_END=(PROP_VARS_BEGIN + NPROP_VARS - CONSTANT_ONE)
+
+#:set SPECIES_BEGIN=(PROP_VARS_END + CONSTANT_ONE)
+
+#:set NSPECIES=0
+#:set SPECIES_END=(SPECIES_BEGIN + NSPECIES - CONSTANT_ONE)
+
+#:set MASS_SCALARS_BEGIN=(SPECIES_END + CONSTANT_ONE)
+
+#:set NMASS_SCALARS=0
+#:set MASS_SCALARS_END=(MASS_SCALARS_BEGIN+NMASS_SCALARS-CONSTANT_ONE)
+
+#:set NMASS_SCALAR_GROUPS=0
+
+#:set NUNK_VARS=(NPROP_VARS + NSPECIES + NMASS_SCALARS)
+#:set UNK_VARS_END=(UNK_VARS_BEGIN - CONSTANT_ONE + NUNK_VARS)
+
+
+
+#:set NFACE_VARS=0
+
+#:set F01DENS_FLUX=1
+#:set F02XMOM_FLUX=2
+#:set F03YMOM_FLUX=3
+#:set F04ZMOM_FLUX=4
+#:set F05ENER_FLUX=5
+
+#:set NPROP_FLUX=5
+#:set NSPECIES_FLUX=0
+#:set NMASS_SCALARS_FLUX=0
+#:set NFLUXES=(NPROP_FLUX + NSPECIES_FLUX + NMASS_SCALARS_FLUX)
+
+#:set PROP_FLUX_BEGIN=CONSTANT_ONE
+#:set FLUXES_BEGIN=(PROP_FLUX_BEGIN)
+
+#:set PROP_FLUX_END=(PROP_FLUX_BEGIN + NPROP_FLUX - CONSTANT_ONE)
+#:set SPECIES_FLUX_BEGIN=(PROP_FLUX_END + CONSTANT_ONE)
+#:set SPECIES_FLUX_END=(SPECIES_FLUX_BEGIN + NSPECIES_FLUX - CONSTANT_ONE)
+#:set MASS_SCALARS_FLUX_BEGIN=(SPECIES_FLUX_END + CONSTANT_ONE)
+#:set MASS_SCALARS_FLUX_END=(MASS_SCALARS_FLUX_BEGIN + NMASS_SCALARS_FLUX - CONSTANT_ONE)
+#:set NVARS_TOTAL=(NUNK_VARS + (NFACE_VARS * 3) + NFLUXES)
+
+
+
+#:set K1D=CONSTANT_ONE
+
+#:if NDIM > CONSTANT_ONE
+  #:set K2D=CONSTANT_ONE
+#:else
+  #:set K2D=CONSTANT_ZERO
+#:endif
+
+#:if NDIM > CONSTANT_TWO
+  #:set K3D=CONSTANT_ONE
+#:else
+  #:set K3D=CONSTANT_ZERO
+#:endif
+
+#:set NGUARD=6
+
+
+#:set NXB=16
+#:set NYB=16
+#:set NZB=1
+
+#:set GRID_ILO_GC=CONSTANT_ONE
+#:set GRID_JLO_GC=CONSTANT_ONE
+#:set GRID_KLO_GC=CONSTANT_ONE
+
+#:set GRID_IHI_GC=(NXB + CONSTANT_TWO*NGUARD*K1D)
+#:set GRID_JHI_GC=(NYB + CONSTANT_TWO*NGUARD*K2D)
+#:set GRID_KHI_GC=(NZB + CONSTANT_TWO*NGUARD*K3D)
+
+#:set GRID_ILO=(NGUARD*K1D + CONSTANT_ONE)
+#:set GRID_JLO=(NGUARD*K2D + CONSTANT_ONE)
+#:set GRID_KLO=(NGUARD*K3D + CONSTANT_ONE)
+
+#:set GRID_IHI=(NGUARD*K1D + NXB)
+#:set GRID_JHI=(NGUARD*K2D + NYB)
+#:set GRID_KHI=(NGUARD*K3D + NZB)
+
+
