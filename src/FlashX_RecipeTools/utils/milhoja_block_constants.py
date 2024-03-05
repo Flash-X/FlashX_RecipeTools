@@ -3,8 +3,6 @@ A list of constants that contain keywords for parsing milhoja directives.
 """
 import operator
 
-from collections import OrderedDict
-
 # PARSING CONSTANTS
 MAX_RANGE_LENGTH = 1000
 # for ensuring that a given r/w/rw range consists only of numeric values and parenthesis.

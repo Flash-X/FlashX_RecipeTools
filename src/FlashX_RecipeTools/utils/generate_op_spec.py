@@ -6,16 +6,12 @@ import argparse
 import os
 import re
 import subprocess
-import milhoja
-import milhoja_block_constants as mbc
-import sys
-import ast
-import operator
 
 from copy import deepcopy
 from pathlib import Path
 from warnings import warn
-from milhoja_block_constants import OPERATIONS
+
+from . import milhoja_block_constants as mbc
 
 
 def evaluate_simple_expression(line: str) -> int:
@@ -39,7 +35,7 @@ def evaluate_simple_expression(line: str) -> int:
         raise Exception(f"Invalid tokens inside of {line}")
 
     # this should probably be a record or class struct instead of a tuple.
-    ops = OPERATIONS
+    ops = mbc.OPERATIONS
     op_stack = []
     out_queue = []
 
