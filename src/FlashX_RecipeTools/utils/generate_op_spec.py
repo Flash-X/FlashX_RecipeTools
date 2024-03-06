@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 
+from loguru import logger
 from copy import deepcopy
 from pathlib import Path
 from warnings import warn
@@ -21,7 +22,7 @@ def evaluate_simple_expression(line: str) -> int:
 
     Can be optimized to reduce -- to + when tokens are parsed
     """
-    print("Line:", line)
+    # print("Line:", line)
     # get all tokens in expression
     tokens = re.findall(r'\*\*|[\+\-\*\\\(\)]|\d+', line)
 
@@ -78,18 +79,13 @@ def evaluate_simple_expression(line: str) -> int:
         i += 1
 
     running = []
-    print(out_queue)
+    # print(out_queue)
     # next, evaluate the expression held by out_queue.
     for token in out_queue:
-        print(f"token: {token}")
-        print(f"state: {running}")
         if token in ops:
             op2 = running.pop()
-            print("Right:", op2)
             op1 = running.pop()
-            print("Left:", op1)
             running.append(ops[token]["function"](op1, op2))
-            print(running)
         else:
             running.append(token)
 
@@ -129,7 +125,6 @@ def format_rw_list(line: str) -> list:
         if lo_success and hi_success:
             rng = []
             for ex in [low,high]:
-                print("Expression:", ex)
                 rng.append(evaluate_simple_expression(ex))
             rw_range.extend(list(range(rng[0], rng[1]+1)))
         else:
@@ -205,9 +200,12 @@ def __get_directive_tokens(line, debug):
         token_dict[kv[0]] = kv[1]
 
     if debug:
-        print(
-            "Name:", name + "\n",
-            "attrs:", token_dict, "\n"
+        logger.info(
+            "\n" +
+            "Name:   {_name} \n" +
+            "attrs:  {_token_dict} \n",
+            _name=name,
+            _token_dict=token_dict
         )
 
     return name, token_dict
@@ -239,7 +237,7 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
                 current_block_tokens = set()
                 sbr_defs = {}
             else:
-                print(f"Unrecognized statement: {line}")
+                logger.warning("Unrecognized statement: {_line}", _line=line)
             continue
 
         # ensure we are inside a milhoja directive block
@@ -259,7 +257,6 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
                     # extents guaranteed to be surrounded be parens and be comma separated.
                     exts = \
                         "(" + ','.join([str(evaluate_simple_expression(expr)) for expr in exts[1:-1].split(',')]) + ")"
-                    print(exts)
                 if "source" in tokens and tokens["source"] in {"external", "scratch"}:
                     tokens["extents"] = exts
 
@@ -335,7 +332,7 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
         for var in js[shared]:
             del js[shared][var]["source"]
 
-    print(json.dumps(js,ensure_ascii=False, indent=4))
+    # print(json.dumps(js,ensure_ascii=False, indent=4))
 
     return js
 
@@ -400,7 +397,7 @@ def __process_interface_file(name: str, file: Path, interface_name, debug: bool)
 
     if debug:
         for line in lines:
-            print(line)
+            logger.info(line)
 
     opspec = __create_op_spec_json(lines, interface_name, name, debug)
     return opspec
@@ -431,14 +428,14 @@ def generate_op_spec(name: str, interface_file, debug=False, call_cpp=False):
 
     # print path info
     if debug:
-        print("Processing: ", str(interface_path))
+        logger.info("Processing: ", str(interface_path))
 
     # create output spec path
     op_spec_path = Path(os.path.dirname(interface_path), name + ".json").resolve()
 
     # call C++ preprocessor if requested
     if call_cpp:
-        base = "_pp_" + os.path.basename(interface_path)
+        base = "__pp_" + os.path.basename(interface_path)
         preproc_file = Path(os.path.dirname(interface_path), base)
         result = subprocess.check_output(f'cpp -E -P {str(interface_path)} {preproc_file}; exit 0', shell=True)
         if result:

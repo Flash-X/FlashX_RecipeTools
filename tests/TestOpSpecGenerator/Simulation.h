@@ -74,6 +74,8 @@
 
   NPROP_VARS = the total number of grid property variables in the simulation
                (ie those ending in _VAR)
+  NEVOL_VARS = total number of evolved variables for TimeAdvance=MoL; these
+               are a subset (and at the start of) the property variables
   NSPECIES = the number of species in the simulation 
              (ie those ending in _SPEC)
   NMASS_SCALARS = the number of mass scalars in a simulation
@@ -88,27 +90,31 @@
 #define PROP_VARS_BEGIN CONSTANT_ONE
 #define UNK_VARS_BEGIN (PROP_VARS_BEGIN)
 
-#define DENA_VAR 1
-#define DENS_VAR 2
-#define EINA_VAR 3
-#define EINT_VAR 4
-#define ENER_VAR 5
-#define ENRA_VAR 6
-#define GAMC_VAR 7
-#define GAME_VAR 8
-#define PRES_VAR 9
-#define PRSA_VAR 10
-#define SHOK_VAR 11
-#define TEMP_VAR 12
-#define VELX_VAR 13
-#define VELY_VAR 14
-#define VELZ_VAR 15
+#define DENS_VAR 1
+#define VELX_VAR 2
+#define VELY_VAR 3
+#define VELZ_VAR 4
+#define PRES_VAR 5
+#define ENER_VAR 6
+#define TEMP_VAR 7
+#define EINT_VAR 8
+#define GAMC_VAR 9
+#define GAME_VAR 10
+#define DENA_VAR 11
+#define EINA_VAR 12
+#define ENRA_VAR 13
+#define PRSA_VAR 14
+#define SHOK_VAR 15
 #define VLXA_VAR 16
 #define VLYA_VAR 17
 #define VLZA_VAR 18
 
 #define NPROP_VARS 18
 #define PROP_VARS_END (PROP_VARS_BEGIN + NPROP_VARS - CONSTANT_ONE)
+
+#define NEVOL_VARS 0
+#define EVOL_VARS_BEGIN (PROP_VARS_BEGIN)
+#define EVOL_VARS_END (EVOL_VARS_BEGIN + NEVOL_VARS - CONSTANT_ONE)
 
 #define SPECIES_BEGIN (PROP_VARS_END + CONSTANT_ONE)
 
@@ -207,11 +213,8 @@
 #define F03YMOM_FLUX 3
 #define F04ZMOM_FLUX 4
 #define F05ENER_FLUX 5
-#define F06P_FLUX 6
-#define F07EINT_FLUX 7
-#define F08VOLU_FLUX 8
 
-#define NPROP_FLUX 8
+#define NPROP_FLUX 5
 #define NSPECIES_FLUX 0
 #define NMASS_SCALARS_FLUX 0
 #define NFLUXES (NPROP_FLUX + NSPECIES_FLUX + NMASS_SCALARS_FLUX)
@@ -275,7 +278,7 @@
 #endif
 
 #define NDIM 2
-#define MAXBLOCKS 1000
+#define MAXBLOCKS 1024
 
 
 #if 0
@@ -300,6 +303,19 @@
 #define NSCRATCH_CENTER_VARS 0
 #define SCRATCH_CENTER_VARS_BEGIN (CONSTANT_ONE)
 #define SCRATCH_CENTER_VARS_END (SCRATCH_CENTER_VARS_BEGIN - CONSTANT_ONE + NSCRATCH_CENTER_VARS)
+
+#define NMOL_RHS_VARS 0
+#define MOL_RHS_VARS_BEGIN (SCRATCH_CENTER_VARS_BEGIN)
+#define MOL_RHS_VARS_END (MOL_RHS_VARS_BEGIN + NMOL_RHS_VARS - CONSTANT_ONE)
+
+#define NMOL_INIT_VARS 0
+#define MOL_INIT_VARS_BEGIN (MOL_RHS_VARS_END + CONSTANT_ONE)
+#define MOL_INIT_VARS_END (MOL_INIT_VARS_BEGIN + NMOL_INIT_VARS - CONSTANT_ONE)
+
+#define NMOL_SCRATCH 0
+#define NMOL_SCRATCH_VARS 0
+#define MOL_SCRATCH_VARS_BEGIN (MOL_INIT_VARS_END + CONSTANT_ONE)
+#define MOL_SCRATCH_VARS_END (MOL_SCRATCH_VARS_BEGIN + NMOL_SCRATCH_VARS - CONSTANT_ONE)
 
 
 #if 0
@@ -384,7 +400,7 @@
 #define K3D CONSTANT_ZERO
 #endif
 
-#define NGUARD 4
+#define NGUARD 6
 
 #if 0
   *************
@@ -413,8 +429,8 @@
 
 #ifdef FIXEDBLOCKSIZE 
 
-#define NXB 8
-#define NYB 8
+#define NXB 16
+#define NYB 16
 #define NZB 1
 
 #define GRID_ILO_GC CONSTANT_ONE
@@ -497,22 +513,21 @@
   ***************************************************************************
 #endif
 
+#define FLASHX_ORCHESTRATION
+#define FLASHX_ORCHESTRATION_MILHOJA
 #define FLASH_EOS
 #define FLASH_EOS_GAMMA
-#define FLASH_GRID_PARAMESH
-#define FLASH_GRID_PARAMESH3OR4
-#define FLASH_GRID_PARAMESH4DEV
-#define FLASH_GRID_PARAMESH4DEV_SURR_BLKS_OPTION
-#define FLASH_HYDRO_UNSPLIT
+#define FLASH_GRID_MILHOJA
 #define FLASH_IO
 #define FLASH_IO_HDF5
-#define FLASH_UHD_HYDRO
+#define FLASH_SPARK_HYDRO
 #define FLASH_USE_MEMORYUSAGE
-#define GRID_GC_LAYERS_ALWAYS_EVEN
-#define GRID_WITH_MONOTONIC
+#define GRID_USE_AMREX_BACKEND
 #define GR_LREFMAXTIMES 20
 #define IO_HDF5_SERIAL
-#define USE_LEVELWIDE_FLUXES
+#define NSTENCIL 3
+#define ORCHESTRATION_OPENACC_OFFLOAD
+#define ORCHESTRATION_USE_GPUS
 
 
 #if 0

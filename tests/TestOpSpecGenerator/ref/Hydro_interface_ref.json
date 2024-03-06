@@ -1,0 +1,407 @@
+{
+  "format": [
+    "Milhoja-JSON",
+    "1.0.0"
+  ],
+  "name": "__Hydro_interface",
+  "variable_index_base": 1,
+  "external": {
+    "_stage": {
+      "type": "integer",
+      "extents": "()"
+    },
+    "_dt": {
+      "type": "real",
+      "extents": "()"
+    },
+    "_dtOld": {
+      "type": "real",
+      "extents": "()"
+    }
+  },
+  "scratch": {
+    "_hy_starState": {
+      "type": "real",
+      "extents": "(28,28,1,18)",
+      "lbound": "(tile_lbound, 1)"
+    },
+    "_hy_tmpState": {
+      "type": "real",
+      "extents": "(28,28,1,18)",
+      "lbound": "(tile_lbound, 1)"
+    },
+    "_xCenter_fake": {
+      "type": "real",
+      "extents": "(1)",
+      "lbound": "(1)"
+    },
+    "_yCenter_fake": {
+      "type": "real",
+      "extents": "(1)",
+      "lbound": "(1)"
+    },
+    "_zCenter_fake": {
+      "type": "real",
+      "extents": "(1)",
+      "lbound": "(1)"
+    },
+    "_xLeft_fake": {
+      "type": "real",
+      "extents": "(1)",
+      "lbound": "(1)"
+    },
+    "_xRight_fake": {
+      "type": "real",
+      "extents": "(1)",
+      "lbound": "(1)"
+    },
+    "_yLeft_fake": {
+      "type": "real",
+      "extents": "(1)",
+      "lbound": "(1)"
+    },
+    "_yRight_fake": {
+      "type": "real",
+      "extents": "(1)",
+      "lbound": "(1)"
+    },
+    "_fareaX_fake": {
+      "type": "real",
+      "extents": "(1,1,1)",
+      "lbound": "(1, 1, 1)"
+    },
+    "_fareaY_fake": {
+      "type": "real",
+      "extents": "(1,1,1)",
+      "lbound": "(1, 1, 1)"
+    },
+    "_fareaZ_fake": {
+      "type": "real",
+      "extents": "(1,1,1)",
+      "lbound": "(1, 1, 1)"
+    },
+    "_cvol_fake": {
+      "type": "real",
+      "extents": "(1,1,1)",
+      "lbound": "(1, 1, 1)"
+    },
+    "_hy_Vc": {
+      "type": "real",
+      "extents": "(28,28,1)",
+      "lbound": "(tile_lbound)"
+    },
+    "_hy_flx": {
+      "type": "real",
+      "extents": "(28,28,1,5)",
+      "lbound": "(tile_lbound, 1)"
+    },
+    "_hy_fly": {
+      "type": "real",
+      "extents": "(28,28,1,5)",
+      "lbound": "(tile_lbound, 1)"
+    },
+    "_hy_flz": {
+      "type": "real",
+      "extents": "(28,28,1,5)",
+      "lbound": "(tile_lbound, 1)"
+    },
+    "_hy_fluxBufX": {
+      "type": "real",
+      "extents": "(17,16,1,5)",
+      "lbound": "(tile_lo, 1)"
+    },
+    "_hy_fluxBufY": {
+      "type": "real",
+      "extents": "(16,17,1,5)",
+      "lbound": "(tile_lo, 1)"
+    },
+    "_hy_fluxBufZ": {
+      "type": "real",
+      "extents": "(16,16,1,5)",
+      "lbound": "(tile_lo, 1)"
+    },
+    "_hy_grav": {
+      "type": "real",
+      "extents": "(3,28,28,1)",
+      "lbound": "(1, tile_lbound)"
+    },
+    "_hy_flat3d": {
+      "type": "real",
+      "extents": "(28,28,1)",
+      "lbound": "(tile_lbound)"
+    },
+    "_hy_rope": {
+      "type": "real",
+      "extents": "(28,28,1,7)",
+      "lbound": "(tile_lbound, 1)"
+    },
+    "_hy_flux": {
+      "type": "real",
+      "extents": "(28,28,1,7)",
+      "lbound": "(tile_lbound, 1)"
+    },
+    "_hy_uPlus": {
+      "type": "real",
+      "extents": "(28,28,1,7)",
+      "lbound": "(tile_lbound, 1)"
+    },
+    "_hy_uMinus": {
+      "type": "real",
+      "extents": "(28,28,1,7)",
+      "lbound": "(tile_lbound, 1)"
+    }
+  },
+  "Hydro_prepBlock": {
+    "interface_file": "Hydro_interface.F90",
+    "argument_list": [
+      "Uin",
+      "hy_Vc",
+      "blkLimitsGC",
+      "hy_starState",
+      "hy_tmpState",
+      "stage",
+      "loGC"
+    ],
+    "argument_specifications": {
+      "Uin": {
+        "source": "grid_data",
+        "structure_index": [
+          "CENTER",
+          1
+        ],
+        "RW": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ]
+      },
+      "hy_Vc": {
+        "source": "scratch",
+        "name": "_hy_Vc"
+      },
+      "blkLimitsGC": {
+        "source": "tile_arrayBounds"
+      },
+      "hy_starState": {
+        "source": "scratch",
+        "name": "_hy_starState"
+      },
+      "hy_tmpState": {
+        "source": "scratch",
+        "name": "_hy_tmpState"
+      },
+      "stage": {
+        "source": "external",
+        "name": "_stage"
+      },
+      "loGC": {
+        "source": "tile_lbound"
+      }
+    }
+  },
+  "Hydro_advance": {
+    "interface_file": "Hydro_interface.F90",
+    "argument_list": [
+      "Uin",
+      "dt",
+      "dtOld",
+      "hy_starState",
+      "hy_tmpState",
+      "hy_flx",
+      "hy_fly",
+      "hy_flz",
+      "hy_fluxBufX",
+      "hy_fluxBufY",
+      "hy_fluxBufZ",
+      "hy_grav",
+      "hy_flat3d",
+      "hy_rope",
+      "hy_flux",
+      "hy_uPlus",
+      "hy_uMinus",
+      "deltas",
+      "blkLimits",
+      "blkLimitsGC",
+      "lo",
+      "loGC",
+      "hy_xCenter",
+      "hy_yCenter",
+      "hy_zCenter",
+      "hy_xLeft",
+      "hy_xRight",
+      "hy_yLeft",
+      "hy_yRight",
+      "hy_fareaX",
+      "hy_fareaY",
+      "hy_fareaZ",
+      "hy_cvol"
+    ],
+    "argument_specifications": {
+      "Uin": {
+        "source": "grid_data",
+        "structure_index": [
+          "CENTER",
+          1
+        ],
+        "RW": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ]
+      },
+      "dt": {
+        "source": "external",
+        "name": "_dt"
+      },
+      "dtOld": {
+        "source": "external",
+        "name": "_dtOld"
+      },
+      "hy_starState": {
+        "source": "scratch",
+        "name": "_hy_starState"
+      },
+      "hy_tmpState": {
+        "source": "scratch",
+        "name": "_hy_tmpState"
+      },
+      "hy_flx": {
+        "source": "scratch",
+        "name": "_hy_flx"
+      },
+      "hy_fly": {
+        "source": "scratch",
+        "name": "_hy_fly"
+      },
+      "hy_flz": {
+        "source": "scratch",
+        "name": "_hy_flz"
+      },
+      "hy_fluxBufX": {
+        "source": "scratch",
+        "name": "_hy_fluxBufX"
+      },
+      "hy_fluxBufY": {
+        "source": "scratch",
+        "name": "_hy_fluxBufY"
+      },
+      "hy_fluxBufZ": {
+        "source": "scratch",
+        "name": "_hy_fluxBufZ"
+      },
+      "hy_grav": {
+        "source": "scratch",
+        "name": "_hy_grav"
+      },
+      "hy_flat3d": {
+        "source": "scratch",
+        "name": "_hy_flat3d"
+      },
+      "hy_rope": {
+        "source": "scratch",
+        "name": "_hy_rope"
+      },
+      "hy_flux": {
+        "source": "scratch",
+        "name": "_hy_flux"
+      },
+      "hy_uPlus": {
+        "source": "scratch",
+        "name": "_hy_uPlus"
+      },
+      "hy_uMinus": {
+        "source": "scratch",
+        "name": "_hy_uMinus"
+      },
+      "deltas": {
+        "source": "tile_deltas"
+      },
+      "blkLimits": {
+        "source": "tile_interior"
+      },
+      "blkLimitsGC": {
+        "source": "tile_arrayBounds"
+      },
+      "lo": {
+        "source": "tile_lo"
+      },
+      "loGC": {
+        "source": "tile_lbound"
+      },
+      "hy_xCenter": {
+        "source": "scratch",
+        "name": "_xCenter_fake"
+      },
+      "hy_yCenter": {
+        "source": "scratch",
+        "name": "_yCenter_fake"
+      },
+      "hy_zCenter": {
+        "source": "scratch",
+        "name": "_zCenter_fake"
+      },
+      "hy_xLeft": {
+        "source": "scratch",
+        "name": "_xLeft_fake"
+      },
+      "hy_xRight": {
+        "source": "scratch",
+        "name": "_xRight_fake"
+      },
+      "hy_yLeft": {
+        "source": "scratch",
+        "name": "_yLeft_fake"
+      },
+      "hy_yRight": {
+        "source": "scratch",
+        "name": "_yRight_fake"
+      },
+      "hy_fareaX": {
+        "source": "scratch",
+        "name": "_fareaX_fake"
+      },
+      "hy_fareaY": {
+        "source": "scratch",
+        "name": "_fareaY_fake"
+      },
+      "hy_fareaZ": {
+        "source": "scratch",
+        "name": "_fareaZ_fake"
+      },
+      "hy_cvol": {
+        "source": "scratch",
+        "name": "_cvol_fake"
+      }
+    }
+  }
+}

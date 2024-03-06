@@ -57,3 +57,7 @@ exclude = [
     "venv",
 ]
 
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "INFO"
+

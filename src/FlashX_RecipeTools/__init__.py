@@ -32,7 +32,8 @@ logger.disable(__name__)
 
 from .utils import (
     OperationSpec,
-    c_header_to_fypp
+    c_header_to_fypp,
+    generate_op_spec,
 )
 
 from .TimeStepRecipe import (
