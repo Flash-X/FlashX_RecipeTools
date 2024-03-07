@@ -431,7 +431,7 @@ def generate_op_spec(name: str, interface_file, debug=False, call_cpp=False):
         logger.info("Processing: ", str(interface_path))
 
     # create output spec path
-    op_spec_path = Path(os.path.dirname(interface_path), name + ".json").resolve()
+    op_spec_path = Path(os.path.dirname(interface_path), "__" + name + "_op_spec.json").resolve()
 
     # call C++ preprocessor if requested
     if call_cpp:
