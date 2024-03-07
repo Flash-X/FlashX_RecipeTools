@@ -3,19 +3,7 @@ import json
 import re
 import os
 from pathlib import Path
-
-from ..utils import OperationSpec
-
-
-GRID_JSON_TPL = """{
-  "__includes": ["Simulation.fypp"],
-  "dimension": "${NDIM}$",
-  "nxb": "${NXB}$",
-  "nyb": "${NYB}$",
-  "nzb": "${NZB}$",
-  "nguardcells": "${NGUARD}$"
-}
-"""
+from loguru import logger
 
 
 # TODO: better implementation for this
@@ -52,18 +40,48 @@ def find_milhoja_path(makefile_site, grid_spec):
         return milhoja_path
 
 
-# TODO: better implementation for this
-def generate_grid_json(grid_json):
-    with open(grid_json, "w") as f:
-        f.write(GRID_JSON_TPL)
+def generate_grid_json(grid_json_filepath:str) -> dict:
+    """
+    Reads Simulation.h and write the grid information
+    needed for Milhoja to JSON format.
+    """
+    simulation_h = Path("Simulation.h")
+    if not simulation_h.is_file():
+        raise FileNotFoundError("Simulation.h is not found in the current directory")
+    # the regex pattern to match lines with '#define KEY VALUE'
+    pattern = r"^\s*#define\s+(\w+)\s+(\S+)"
+    # Mapping of C preprocessor keys to output dictionary keys
+    key_map = {
+        "NDIM": "dimension",
+        "NXB": "nxb",
+        "NYB": "nyb",
+        "NZB": "nzb",
+        "NGUARD": "nguardcells",
+    }
+    out_dict = {}
+    with open(simulation_h, 'r') as fptr:
+        for line in fptr:
+            line = line.strip()
+            match = re.match(pattern, line)
+            if match:
+                key, value = match.groups()
+                if key in key_map:
+                    # Convert value to an integer
+                    try:
+                        value = int(value)
+                    except ValueError:
+                        raise RuntimeError(f"Unable to cast {value} to intger in processing [{line}].")
+                    if key_map[key] in out_dict:
+                        raise RuntimeError(f"Multiple definitions for {key} are detected")
+                    out_dict[key_map[key]] = value
 
-    # TODO: faking it to perform fypp preprocess
-    grid_spec = OperationSpec(grid_json)
+    # write to disk
+    if Path(grid_json_filepath).is_file():
+        logger.warning("Overwriting {_file}", _file=grid_json_filepath)
+    with open(grid_json_filepath, 'w') as fptr:
+        json.dump(out_dict, fptr, indent=2)
 
-    with open(grid_json, "w") as f:
-        json.dump(grid_spec.data, f, indent=2)
-
-    return dict(grid_spec.data)
+    return out_dict
 
 
 def generate_taskfunction_codes(tf_data):
