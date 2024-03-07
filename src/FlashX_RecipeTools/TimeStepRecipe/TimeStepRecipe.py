@@ -14,11 +14,9 @@ from ..constants import (
     DEVICE_KEY,
     KEEP_KEY,
     OPSPEC_KEY,
-    SETUP_OPERATION_SPEC_FNAME,
     ORCHESTRATION_KEY,
 )
 from ..utils import (
-    OperationSpec,
     generate_op_spec,
 )
 

@@ -47,7 +47,5 @@ MILHOJA_DEVICE_LIST = ["gpu", "cpu"]
 ###############################################################################
 
 OPSPEC_KEY = "operation"
-
 ORCHESTRATION_KEY = "orchestration"
 
-SETUP_OPERATION_SPEC_FNAME = "setup_operationSpecs"
