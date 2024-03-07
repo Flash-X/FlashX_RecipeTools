@@ -8,13 +8,18 @@ authors = [
 ]
 description = "Recipe Tools for Flash-X"
 readme = "README.md"
+license = {file = "LICENSE"}
 classifiers = [
 ]
-requires-python = ">=3.08"
+requires-python = ">=3.9"
 dependencies = [
-    "Code-Generation-Toolkit @ git+ssh://git@github.com/ylee88/cg-kit.git",
-    "milhoja @ git+ssh://git@git.cels.anl.gov/joneal/OrchestrationRuntime.git@c5153bea7eabd7cc8ce05214c50a65421a22bfb9#subdirectory=tools/milhoja_pypkg",
     "loguru",
+    """Code-Generation-Toolkit
+    @git+ssh://git@github.com/ylee88/cg-kit.git""",
+    """milhoja
+    @git+ssh://git@git.cels.anl.gov/joneal/OrchestrationRuntime.git
+    @c5153bea7eabd7cc8ce05214c50a65421a22bfb9
+    #subdirectory=tools/milhoja_pypkg""",
 ]
 dynamic = ["version"]
 
@@ -23,7 +28,7 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project.urls]
-Documentation = "https://flash-x.org"
+Homepage = "https://flash-x.org"
 
 [tool.black]
 line-length = 120
@@ -56,6 +61,7 @@ exclude = [
     "dist",
     "node_modules",
     "venv",
+    "env",
 ]
 
 [tool.pytest.ini_options]
