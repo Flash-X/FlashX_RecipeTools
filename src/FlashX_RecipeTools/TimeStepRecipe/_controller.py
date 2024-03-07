@@ -36,9 +36,11 @@ class Ctr_InitNodeFromOpspec(AbstractControllerNode):
             try:
                 args = opspec[nodeObj.name]["argument_list"]
             except KeyError:
-                raise (
-                    f"argument_list of WorkNode {name} is not found in the operation spec"
+                self._log.error(
+                    "argument_list of WorkNode {_name} is not found in the operation spec",
+                    _name=name
                 )
+                raise KeyError(name)
             self._log.info(
                 "inserting argument list {_args} into WorkNode {_name}",
                 _args=args,

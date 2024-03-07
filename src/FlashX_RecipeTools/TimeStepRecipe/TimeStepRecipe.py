@@ -1,3 +1,5 @@
+import json
+
 from cgkit.cflow.graph import ControlFlowGraph
 from loguru import logger
 from functools import wraps
@@ -15,7 +17,10 @@ from ..constants import (
     SETUP_OPERATION_SPEC_FNAME,
     ORCHESTRATION_KEY,
 )
-from ..utils import OperationSpec
+from ..utils import (
+    OperationSpec,
+    generate_op_spec,
+)
 
 
 
@@ -25,6 +30,7 @@ class TimeStepRecipe(ControlFlowGraph):
 
         super().__init__(verbose=verbose, **kwargs)
 
+        self.interface_fnames = set()
         self.opspecs = dict()        # str: dict
         self.opspec_fnames = dict()  # str: Path(or str)
 
@@ -53,15 +59,21 @@ class TimeStepRecipe(ControlFlowGraph):
 
     @nodeappending
     def add_work(self, name:str, after:int, map_to:str):
+        # assuming the node name and subroutine name are the same
+        fnName = name
+        # assuming the subroutine name is structured as [unit_name]_[routine_name]
+        #    e.g., "Hydro_advance" is belong to "Hydro" unit
         try:
-            spec_name, fnName = name.split("::")
+            spec_name, _ = name.split("_")
         except ValueError:
-            self._log.exception("name should be passed as [spec_name]::[function_name]")
-            raise
+            self._log.exception("Unable to decode unit name from {_name}", _name=name)
+            raise ValueError
         node = WorkNode(name=fnName, opspec=spec_name)     #TODO: opspec argument may redundant
         handle = self.linkNode(node)(after)
         self.setNodeAttribute(handle, DEVICE_KEY, map_to.lower())
         self.setNodeAttribute(handle, OPSPEC_KEY, spec_name)
+        # add interface files needed to be parsed
+        self.interface_fnames.add(spec_name + "_interface.F90")
 
         self._log.info("adding WorkNode({_name})", _name=name)
 
@@ -100,35 +112,37 @@ class TimeStepRecipe(ControlFlowGraph):
         )
         return self.opspec_fnames[operation_name]
 
-    def add_group_specs(self):
+    def collect_operation_specs(self):
         """
-        Reads the file SETUP_OPERATION_SPEC_FNAME then
-        reads each operation spec file and writes JSON to disk.
+        Generating required operation spec in JSON format
+        by processing interface files recorded under self.interface_fnames.
+        It also writes the JSON files on the disk.
         """
-        specs = dict()
-        assert Path(SETUP_OPERATION_SPEC_FNAME).is_file(), (
-            f"{SETUP_OPERATION_SPEC_FNAME} is not found in current directory"
-        )
-        with open(SETUP_OPERATION_SPEC_FNAME, 'r') as f:
-            for line in f.readlines():
-                line = line.strip()
-                if line.startswith("#") or len(line) == 0:
-                    continue
-                spec_name, spec_fname = line.split()
-                if spec_name in specs.keys():
-                    raise ValueError(
-                        f"{spec_name} defined multiple times in file: {SETUP_OPERATION_SPEC_FNAME}"
-                    )
-                specs.update({spec_name: spec_fname})
-        for spec_name, spec_fname in specs.items():
-            opspec = OperationSpec(spec_fname)
+        # populate JSONs from the interface files
+        for interface in self.interface_fnames:
+            interface_path = Path(interface)
+            if not interface_path.is_file():
+                self._log.error("{_fname} is not found in the current directory", _fname=interface_path)
+                raise FileNotFoundError(interface_path)
+            # get operation spec name
+            op_spec_name, _ = interface_path.stem.split("_")
             self._log.info(
-                "Operation Spec {_spec_name} is loaded from {_spec_fname}",
-                _spec_name=spec_name, _spec_fname=spec_fname
+                "Generating {_op_spec_name} operation spec" +
+                " by processing {_interface_path}",
+                _op_spec_name=op_spec_name,
+                _interface_path=interface_path
             )
-            # write to json file to dick
-            opspec.write2json(f"__{spec_name}.json")
-            # update data
-            self.opspecs.update({spec_name : opspec.data})
-            self.opspec_fnames.update({spec_name : f"__{spec_name}.json"})
+            # populate operation spec and write on disk
+            op_spec_path = generate_op_spec(op_spec_name, interface_path, debug=False, call_cpp=True)
+            self._log.info(
+                "Operation spec is written at {_op_spec_path}",
+                _op_spec_path=op_spec_path
+            )
+            # save operation spec data in the recipe
+            with open(op_spec_path, 'r') as fptr:
+                op_spec_data = json.load(fptr)
+            self.opspecs.update({op_spec_name : op_spec_data})
+            self.opspec_fnames.update({op_spec_name : op_spec_path})
+        return
+
 
