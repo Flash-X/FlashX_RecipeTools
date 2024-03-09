@@ -84,7 +84,7 @@ def generate_grid_json(grid_json_filepath:str) -> dict:
     return out_dict
 
 
-def generate_taskfunction_codes(tf_data):
+def generate_taskfunction_codes(tf_data, dest="__milhoja"):
     # TODO: check if tf_data is valid
 
     tf_name = tf_data["name"]
@@ -126,12 +126,12 @@ def generate_taskfunction_codes(tf_data):
     grid_spec = generate_grid_json(grid_json)
 
     # Milhoja
-    logger = milhoja.BasicLogger(level=3)
+    milhoja_logger = milhoja.BasicLogger(level=3)
 
     call_graph = tf_data["subroutine_call_graph"]
     group_json_all = tf_data["operation_specs"]
     tfAssembler = milhoja.TaskFunctionAssembler.from_milhoja_json(
-        tf_name, call_graph, group_json_all, grid_json, logger
+        tf_name, call_graph, group_json_all, grid_json, milhoja_logger
     )
 
     tf_spec_json = f"__tf_spec_{tf_name}.json"
@@ -139,7 +139,15 @@ def generate_taskfunction_codes(tf_data):
 
     # Write task function's code for use with Orchestration unit
 
-    destination = Path("./__milhoja")
+    destination = Path.cwd() / dest
+    if destination.is_file():
+        logger.error("Destination path {_destination} is a file", _destination=destination)
+        raise FileExistsError(destination)
+
+    if not destination.is_dir():
+        logger.info("Making directory at {_destination}", _destination=destination)
+        destination.mkdir(parents=True, exist_ok=True)
+
     overwrite = True
     indent = 3
     milhoja_path = find_milhoja_path("Makefile.h", grid_spec)
@@ -148,12 +156,12 @@ def generate_taskfunction_codes(tf_data):
 
     # TODO: not implmented yet. (branch: 63-datapacketgenerator-lacks-lbound-support)
     milhoja.generate_data_item(
-        tf_spec, destination, overwrite, milhoja_path, indent, logger
+        tf_spec, destination, overwrite, milhoja_path, indent, milhoja_logger
     )
 
     # TODO: not implmented yet. (branch: FortranOaccTf)
     milhoja.generate_task_function(
-        tf_spec, destination, overwrite, indent, logger
+        tf_spec, destination, overwrite, indent, milhoja_logger
     )
 
     return
