@@ -437,9 +437,11 @@ def generate_op_spec(name: str, interface_file, debug=False, call_cpp=False):
     if call_cpp:
         base = "__pp_" + os.path.basename(interface_path)
         preproc_file = Path(os.path.dirname(interface_path), base)
-        result = subprocess.check_output(f'cpp -E -P {str(interface_path)} {preproc_file}; exit 0', shell=True)
-        if result:
-            raise Exception(result)
+        try:
+            subprocess.check_output(f'cpp -E -P {str(interface_path)} {preproc_file}', shell=True)
+        except subprocess.CalledProcessError as e:
+            logger.error("Failed to preprocess a file: {_fname}", _fname=interface_file)
+            raise RuntimeError(e)
         interface_path = preproc_file
 
     # process file
