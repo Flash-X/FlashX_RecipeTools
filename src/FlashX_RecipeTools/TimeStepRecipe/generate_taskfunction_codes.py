@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from loguru import logger
 
+from .construct_partial_tf_spec import construct_partial_tf_spec
 
 # TODO: better implementation for this
 def find_milhoja_path(makefile_site, grid_spec):
@@ -88,39 +89,13 @@ def generate_taskfunction_codes(tf_data, dest="__milhoja"):
     # TODO: check if tf_data is valid
 
     tf_name = tf_data["name"]
-    processor = tf_data["processor"]
 
-    # TODO: this may be in tfData
-    data_item = "TileWrapper"
-    offloading = ""
-    if processor.lower() == "gpu":
-        data_item = "DataPacket"
-        # TODO: openmp offload?
-        offloading = "OpenACC"
+    # construct partial tf spec
+    partial_tf_spec = construct_partial_tf_spec(tf_data)
 
-    tf_partial_spec = {
-        "task_function": {
-            "language": "Fortran",
-            "processor": processor,
-            "computation_offloading": offloading,
-            "variable_index_base": 1,
-            "cpp_header": f"{tf_name}.h",
-            "cpp_source": f"{tf_name}.cxx",
-            "c2f_source": f"{tf_name}_C2F.F90",
-            "fortran_source": f"{tf_name}_mod.F90",
-        },
-        "data_item": {
-            "type": data_item,
-            "byte_alignment": 1,
-            "header": f"{data_item}_{tf_name}.h",
-            "module": f"{data_item}_{tf_name}_mod.F90",
-            "source": f"{data_item}_{tf_name}.cxx",
-        },
-    }
-
-    tf_partial_json = f"__{tf_name}.json"
-    with open(tf_partial_json, "w") as fptr:
-        json.dump(tf_partial_spec, fptr, indent=2)
+    partial_tf_json = f"__{tf_name}.json"
+    with open(partial_tf_json, "w") as fptr:
+        json.dump(partial_tf_spec, fptr, indent=2)
 
     grid_json = "__grid.json"
     grid_spec = generate_grid_json(grid_json)
@@ -135,7 +110,7 @@ def generate_taskfunction_codes(tf_data, dest="__milhoja"):
     )
 
     tf_spec_json = f"__tf_spec_{tf_name}.json"
-    tfAssembler.to_milhoja_json(tf_spec_json, tf_partial_json, overwrite=True)
+    tfAssembler.to_milhoja_json(tf_spec_json, partial_tf_json, overwrite=True)
 
     # Write task function's code for use with Orchestration unit
 

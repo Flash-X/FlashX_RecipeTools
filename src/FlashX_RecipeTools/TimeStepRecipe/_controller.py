@@ -216,7 +216,7 @@ class Ctr_ParseTFGraph(AbstractControllerGraph):
         else:
             return self.call_graph
 
-    def getTFData(self):
+    def getAllTFData(self):
         return list(self.tfData)
 
     def dumpTFData(self):

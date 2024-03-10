@@ -29,6 +29,7 @@ class TimeStepRecipe(ControlFlowGraph):
         super().__init__(verbose=verbose, **kwargs)
 
         self.interface_fnames = set()
+        self.output_fnames = set()
         self.opspecs = dict()        # str: dict
         self.opspec_fnames = dict()  # str: Path(or str)
 
@@ -109,6 +110,12 @@ class TimeStepRecipe(ControlFlowGraph):
             f"{operation_name} spec is not found in the given recipe"
         )
         return self.opspec_fnames[operation_name]
+
+    def set_output_fnames(self, fnames:set):
+        self.output_fnames = set(fnames)
+
+    def get_output_fnames(self):
+        return set(self.output_fnames)
 
     def collect_operation_specs(self):
         """
