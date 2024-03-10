@@ -43,7 +43,10 @@ def test_spark_hydro():
         actual = destination / file
         expected = REF_PATH / file
 
-        print(f"checking {actual} == {expected}")
-        assert filecmp.cmp(actual, expected, shallow=False)
+        assert filecmp.cmp(actual, expected, shallow=False), (
+            f"Files are not identical: {actual.name}" + "\n"
+            f"actual   : {actual}" + "\n"
+            f"expected : {expected}"
+        )
 
 
