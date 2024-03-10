@@ -153,6 +153,7 @@ class Ctr_InitSubgraph(AbstractControllerGraph):
         ctrNode.attribute["names"] = ctrNode.getAllWorkNames()
         ctrNode.attribute["args"] = ctrNode.getAllWorkArgs()
         ctrNode.attribute["opspecs"] = ctrNode.getAllOpSpecs()
+        ctrNode.attribute["objdir"] = graph.objdir
         # set attributes of subgraph
         self._log.info("set subgraph attributes={attribute}", attribute=ctrNode.attribute)
         for key, val in ctrNode.attribute.items():
@@ -180,6 +181,7 @@ class Ctr_ParseTFGraph(AbstractControllerGraph):
             # entering subgraph
             self._log.info("entering subgraph level={level}", level=graph.level)
             if graph.level > 1:    # TODO: need to know why this is needed
+                objdir = graphAttribute["objdir"]
                 device = graphAttribute["device"]
                 subroutines = graphAttribute["names"]
                 opspecs = graphAttribute["opspecs"]
@@ -193,7 +195,7 @@ class Ctr_ParseTFGraph(AbstractControllerGraph):
                     )
                 self._log.info("generating TF call graph for {_subroutines}", _subroutines=subroutines)
 
-                tf = self._initTFData(subroutines, opspec_fnames, device)
+                tf = self._initTFData(objdir, subroutines, opspec_fnames, device)
 
                 self.tfData.append(tf)
         return CtrRet.SUCCESS
@@ -226,8 +228,9 @@ class Ctr_ParseTFGraph(AbstractControllerGraph):
                 json.dump(tf, f, indent=2)
 
 
-    def _initTFData(self, subroutines:list, opspec:list, device:str):
+    def _initTFData(self, objdir:str, subroutines:list, opspec:list, device:str):
         tf = dict()
+        tf["objdir"] = objdir
         tf["name"] = f"{device}_{self.taskfn_basenm}_{self.taskfn_n}"
         self.taskfn_n += 1
         tf["language"] = "Fortran"

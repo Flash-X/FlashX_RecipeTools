@@ -21,6 +21,12 @@ def find_milhoja_path(makefile_site, grid_spec):
 
     milhoja_path_from_make = match.group("path")
 
+    # if found string is a relative path,
+    # assuming it is relative to makefile_site
+    # TODO: this is only for test case
+    if not Path(milhoja_path_from_make).is_absolute():
+        return makefile_site.parent / milhoja_path_from_make
+
     if Path(milhoja_path_from_make).is_dir():
         return milhoja_path_from_make
 
@@ -40,15 +46,17 @@ def find_milhoja_path(makefile_site, grid_spec):
 
         return milhoja_path
 
+    # if it reaches here, something went wrong
+    raise ValueError(f"Unable to resolve the MILHOJA_PATH = {milhoja_path_from_make}, found in {makefile_site}")
 
-def generate_grid_json(grid_json_filepath:str) -> dict:
+
+def generate_grid_json(simulation_h_path:Path, grid_json_path:Path) -> dict:
     """
     Reads Simulation.h and write the grid information
     needed for Milhoja to JSON format.
     """
-    simulation_h = Path("Simulation.h")
-    if not simulation_h.is_file():
-        raise FileNotFoundError("Simulation.h is not found in the current directory")
+    if not simulation_h_path.is_file():
+        raise FileNotFoundError(f"{simulation_h_path} is not found in the current directory")
     # the regex pattern to match lines with '#define KEY VALUE'
     pattern = r"^\s*#define\s+(\w+)\s+(\S+)"
     # Mapping of C preprocessor keys to output dictionary keys
@@ -60,7 +68,7 @@ def generate_grid_json(grid_json_filepath:str) -> dict:
         "NGUARD": "nguardcells",
     }
     out_dict = {}
-    with open(simulation_h, 'r') as fptr:
+    with open(simulation_h_path, 'r') as fptr:
         for line in fptr:
             line = line.strip()
             match = re.match(pattern, line)
@@ -77,9 +85,9 @@ def generate_grid_json(grid_json_filepath:str) -> dict:
                     out_dict[key_map[key]] = value
 
     # write to disk
-    if Path(grid_json_filepath).is_file():
-        logger.warning("Overwriting {_file}", _file=grid_json_filepath)
-    with open(grid_json_filepath, 'w') as fptr:
+    if grid_json_path.is_file():
+        logger.warning("Overwriting {_file}", _file=grid_json_path)
+    with open(grid_json_path, 'w') as fptr:
         json.dump(out_dict, fptr, indent=2)
 
     return out_dict
@@ -89,16 +97,18 @@ def generate_taskfunction_codes(tf_data, dest="__milhoja"):
     # TODO: check if tf_data is valid
 
     tf_name = tf_data["name"]
+    objdir = Path(tf_data["objdir"])
 
     # construct partial tf spec
     partial_tf_spec = construct_partial_tf_spec(tf_data)
 
-    partial_tf_json = f"__{tf_name}.json"
+    partial_tf_json = objdir / f"__{tf_name}.json"
     with open(partial_tf_json, "w") as fptr:
         json.dump(partial_tf_spec, fptr, indent=2)
 
-    grid_json = "__grid.json"
-    grid_spec = generate_grid_json(grid_json)
+    grid_json = objdir / "__grid.json"
+    simulation_h = objdir / "Simulation.h"
+    grid_spec = generate_grid_json(simulation_h, grid_json)
 
     # Milhoja
     milhoja_logger = milhoja.BasicLogger(level=3)
@@ -109,12 +119,12 @@ def generate_taskfunction_codes(tf_data, dest="__milhoja"):
         tf_name, call_graph, group_json_all, grid_json, milhoja_logger
     )
 
-    tf_spec_json = f"__tf_spec_{tf_name}.json"
+    tf_spec_json = objdir / f"__tf_spec_{tf_name}.json"
     tfAssembler.to_milhoja_json(tf_spec_json, partial_tf_json, overwrite=True)
 
     # Write task function's code for use with Orchestration unit
 
-    destination = Path.cwd() / dest
+    destination = objdir / dest
     if destination.is_file():
         logger.error("Destination path {_destination} is a file", _destination=destination)
         raise FileExistsError(destination)
@@ -125,7 +135,7 @@ def generate_taskfunction_codes(tf_data, dest="__milhoja"):
 
     overwrite = True
     indent = 3
-    milhoja_path = find_milhoja_path("Makefile.h", grid_spec)
+    milhoja_path = find_milhoja_path(objdir / "Makefile.h", grid_spec)
 
     tf_spec = milhoja.TaskFunction.from_milhoja_json(tf_spec_json)
 
@@ -140,3 +150,4 @@ def generate_taskfunction_codes(tf_data, dest="__milhoja"):
     )
 
     return
+

@@ -25,9 +25,11 @@ from ..utils import (
 
 
 class TimeStepRecipe(ControlFlowGraph):
-    def __init__(self, verbose=CGKIT_VERBOSITY, **kwargs):
+    def __init__(self, flashx_objdir=".", verbose=CGKIT_VERBOSITY, **kwargs):
 
         super().__init__(verbose=verbose, **kwargs)
+
+        self.objdir = Path(flashx_objdir)
 
         self.interface_fnames = set()
         self.output_fnames = set()
@@ -40,6 +42,7 @@ class TimeStepRecipe(ControlFlowGraph):
 
     def _shallowCopy(self):
         shallowCopy = super()._shallowCopy()
+        shallowCopy.objdir = self.objdir
         shallowCopy.opspecs = self.opspecs.copy()
         shallowCopy.opspec_fnames = self.opspec_fnames.copy()
         return shallowCopy
@@ -126,7 +129,7 @@ class TimeStepRecipe(ControlFlowGraph):
         """
         # populate JSONs from the interface files
         for interface in self.interface_fnames:
-            interface_path = Path(interface)
+            interface_path = self.objdir / interface
             if not interface_path.is_file():
                 self._log.error("{_fname} is not found in the current directory", _fname=interface_path)
                 raise FileNotFoundError(interface_path)
