@@ -1,9 +1,0 @@
-# assuming it is written by setup.py
-# and all json files are *linked* in the object directory.
-# need to figure out the file naming convention for preprocessed files
-# or change milhoja.TaskFunctionAssembler.from_milhoja_json
-# to gather the group_specs in list(dict) form rather than list(str)
-
-# op_spec_name     op_spec_filename (not-preprocessed)
-
-Hydro_op1    Hydro_op1_2D.json

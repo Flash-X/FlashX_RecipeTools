@@ -1,7 +1,0 @@
-USESETUPVARS nDim
-
-IF nDim == 2
-  MILHOJA_OPSPEC   Hydro_op1   Hydro_op1_2D.json
-ELSEIF nDim == 3
-  MILHOJA_OPSPEC   Hydro_op1   Hydro_op1_3D.json
-ENDIF

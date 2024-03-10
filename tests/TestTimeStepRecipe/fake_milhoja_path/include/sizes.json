@@ -1,0 +1,13 @@
+{
+    "FArray1D": 24,
+    "FArray2D": 24,
+    "FArray3D": 40,
+    "FArray4D": 48,
+    "IntVect": 8,
+    "RealVect": 16,
+    "byte_align": 16,
+    "int": 4,
+    "real": 8,
+    "std::size_t": 8,
+    "unsigned int": 4
+}
