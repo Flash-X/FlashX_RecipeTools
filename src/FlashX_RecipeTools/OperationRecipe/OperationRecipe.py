@@ -6,11 +6,11 @@ from ._controllers import (
     Ctr_ParseNode,
     Ctr_ParseMultiEdge,
 )
-from ..constants import VERBOSE_DEFAULT, KEEP_KEY
+from ..constants import CGKIT_VERBOSITY, KEEP_KEY
 
 
 class OperationRecipe(ControlFlowGraph):
-    def __init__(self, tpl=None, verbose=VERBOSE_DEFAULT, **kwargs):
+    def __init__(self, tpl=None, verbose=CGKIT_VERBOSITY, **kwargs):
         super().__init__(verbose=verbose, **kwargs)
 
         self.tpl = tpl

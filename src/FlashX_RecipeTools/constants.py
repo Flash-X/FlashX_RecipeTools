@@ -16,7 +16,7 @@
 
 # TODO: Should there be a single global verbose default or should each set of
 #       CG-Kit tools define its own default value?
-VERBOSE_DEFAULT = False
+CGKIT_VERBOSITY = False
 
 KEEP_KEY = "keep"
 DEVICE_KEY = "device"

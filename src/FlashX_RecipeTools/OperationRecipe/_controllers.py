@@ -18,7 +18,7 @@ from ..nodes import (
     GenericEndNode,
 )
 from ..constants import (
-    VERBOSE_DEFAULT,
+    CGKIT_VERBOSITY,
 )
 
 
@@ -27,7 +27,7 @@ INTERNAL_TEMPLATE_PATH = FLASHX_RECIPETOOLS_ROOT / "_internal_tpl"
 
 
 class Ctr_initRecipeNode(AbstractControllerNode):
-    def __init__(self, verbose=VERBOSE_DEFAULT):
+    def __init__(self, verbose=CGKIT_VERBOSITY):
         super().__init__(
             controllerType="modify",
             verbose=verbose,
@@ -83,7 +83,7 @@ def _encloseConnector(tree, startswith, endswith):
     return tree
 
 class Ctr_ParseGraph(AbstractControllerGraph):
-    def __init__(self, templatePath="cg-tpl", indentSpace=" " * 3, verbose=VERBOSE_DEFAULT):
+    def __init__(self, templatePath="cg-tpl", indentSpace=" " * 3, verbose=CGKIT_VERBOSITY):
         super().__init__(controllerType="view", verbose=verbose, verbose_prefix="[Ctr_ParseGraph]")
         self.templatePath = Path(templatePath)
         self._stree = SourceTree(self.templatePath, indentSpace, verbose=verbose, verbosePre="!", verbosePost="")
@@ -175,7 +175,7 @@ class Ctr_ParseGraph(AbstractControllerGraph):
 
 
 class Ctr_ParseNode(AbstractControllerNode):
-    def __init__(self, ctrParseGraph, workTemplate="cg-tpl.work.json", verbose=VERBOSE_DEFAULT):
+    def __init__(self, ctrParseGraph, workTemplate="cg-tpl.work.json", verbose=CGKIT_VERBOSITY):
         super().__init__(controllerType="view", verbose=verbose, verbose_prefix="[Ctr_ParseNode]")
         self._ctrParseGraph = ctrParseGraph
         self._templatePath = ctrParseGraph.templatePath
@@ -274,7 +274,7 @@ class Ctr_ParseNode(AbstractControllerNode):
 
 
 class Ctr_ParseMultiEdge(AbstractControllerMultiEdge):
-    def __init__(self, ctrParseGraph, templatePath="cg-tpl", verbose=VERBOSE_DEFAULT):
+    def __init__(self, ctrParseGraph, templatePath="cg-tpl", verbose=CGKIT_VERBOSITY):
         super().__init__(controllerType="view", verbose=verbose, verbose_prefix="[Ctr_ParseMultiEdge]")
         self._ctrParseGraph = ctrParseGraph
         self._templatePath = ctrParseGraph.templatePath

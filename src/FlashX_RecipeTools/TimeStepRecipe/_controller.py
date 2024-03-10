@@ -12,7 +12,7 @@ from ..constants import (
     KEEP_KEY,
     DEVICE_KEY,
     DEVICE_CHANGE_KEY,
-    VERBOSE_DEFAULT,
+    CGKIT_VERBOSITY,
     OPSPEC_KEY,
     ORCHESTRATION_KEY,
 )
@@ -74,7 +74,7 @@ class Ctr_SetupEdge(AbstractControllerEdge):
 
 
 class Ctr_GetAttributesForSubgraph(AbstractControllerNode):
-    def __init__(self, verbose=VERBOSE_DEFAULT):
+    def __init__(self, verbose=CGKIT_VERBOSITY):
         super().__init__(controllerType="view")
         self._log = logger
         self.attribute = dict()
@@ -126,7 +126,7 @@ class Ctr_GetAttributesForSubgraph(AbstractControllerNode):
 
 
 class Ctr_MarkEdgeAsKeep(AbstractControllerEdge):
-    def __init__(self, verbose=VERBOSE_DEFAULT):
+    def __init__(self, verbose=CGKIT_VERBOSITY):
         super().__init__(controllerType="view")
         self._log = logger
 
@@ -148,7 +148,7 @@ class Ctr_InitSubgraph(AbstractControllerGraph):
 
     def __call__(self, graph, graphAttribute):
         # get info from nodes of subgraph
-        ctrNode = Ctr_GetAttributesForSubgraph(verbose=self.verbose)
+        ctrNode = Ctr_GetAttributesForSubgraph()
         graph.visit(controllerNode=ctrNode)
         ctrNode.attribute["names"] = ctrNode.getAllWorkNames()
         ctrNode.attribute["args"] = ctrNode.getAllWorkArgs()

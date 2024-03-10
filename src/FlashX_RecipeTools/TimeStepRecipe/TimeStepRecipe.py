@@ -15,6 +15,7 @@ from ..constants import (
     KEEP_KEY,
     OPSPEC_KEY,
     ORCHESTRATION_KEY,
+    CGKIT_VERBOSITY,
 )
 from ..utils import (
     generate_op_spec,
@@ -24,7 +25,7 @@ from ..utils import (
 
 
 class TimeStepRecipe(ControlFlowGraph):
-    def __init__(self, verbose=False, **kwargs):
+    def __init__(self, verbose=CGKIT_VERBOSITY, **kwargs):
 
         super().__init__(verbose=verbose, **kwargs)
 
