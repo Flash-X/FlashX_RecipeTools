@@ -95,7 +95,7 @@ def compile_recipe(recipe:TimeStepRecipe) -> list:
     tfData_all = list(ctrParseTFGraph.getAllTFData())
     output_files = determine_output_files(tfData_all)
     # assign output file names to recipe object
-    recipe.set_output_fnames(output_files)
+    recipe.add_output_fnames(output_files)
 
     return tfData_all
 

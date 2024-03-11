@@ -115,8 +115,11 @@ class TimeStepRecipe(ControlFlowGraph):
         )
         return self.opspec_fnames[operation_name]
 
-    def set_output_fnames(self, fnames:set):
-        self.output_fnames = set(fnames)
+    def add_output_fnames(self, filenames_to_add:set):
+        for filename in filenames_to_add:
+            if filename in self.output_fnames:
+                raise ValueError(f"Duplicate filename detected: {filename}")
+            self.output_fnames.add(filename)
 
     def get_output_fnames(self):
         return set(self.output_fnames)
