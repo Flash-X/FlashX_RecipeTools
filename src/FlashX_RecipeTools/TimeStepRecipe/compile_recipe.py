@@ -10,6 +10,8 @@ from ._controller import (
 )
 from .construct_partial_tf_spec import construct_partial_tf_spec
 
+from pathlib import Path
+
 
 SUPPORTED = {
     "processor": ["gpu"],
@@ -71,7 +73,24 @@ def determine_output_files(tfData_all:list) -> set:
     return output_files
 
 
-def compile_recipe(recipe:TimeStepRecipe) -> list:
+def generate_makefile_milhoja(output_files:set, makefile_path:Path):
+    # write Makefile.Milhoja
+    objfiles = []
+    for filename in output_files:
+        name = Path(filename).stem
+        ext = Path(filename).suffix
+        if ext in [".F90", ".cxx"]:
+            objfiles.append(name + ".o")
+    with open(makefile_path, 'w') as fptr:
+        fptr.write("Milhoja += \\\n\t")
+        fptr.write(" \\\n\t".join(sorted(objfiles)))
+
+
+def compile_recipe(
+        recipe:TimeStepRecipe,
+        generate_makefile=False,
+        makefile_name="Makefile.Milhoja"
+    ) -> list:
     # gather argument list of each nodes
     recipe.traverse(controllerNode=Ctr_InitNodeFromOpspec())
 
@@ -91,11 +110,16 @@ def compile_recipe(recipe:TimeStepRecipe) -> list:
         controllerNode=ctrParseTFNode,
         controllerMultiEdge=ctrParseTFMultiedge
     )
-
     tfData_all = list(ctrParseTFGraph.getAllTFData())
-    output_files = determine_output_files(tfData_all)
+
     # assign output file names to recipe object
+    output_files = determine_output_files(tfData_all)
     recipe.add_output_fnames(output_files)
+
+    # generate makefile
+    if generate_makefile:
+        generate_makefile_milhoja(output_files, recipe.objdir / makefile_name)
+
 
     return tfData_all
 

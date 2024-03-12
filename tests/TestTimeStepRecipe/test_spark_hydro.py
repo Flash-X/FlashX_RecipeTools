@@ -24,7 +24,7 @@ def test_spark_hydro():
     # writes all needed operation specs by processing interface files
     recipe.collect_operation_specs()
 
-    tf_data_all = flashx.compile_recipe(recipe)
+    tf_data_all = flashx.compile_recipe(recipe, generate_makefile=True, makefile_name="__Makefile.Milhoja")
 
     destination = CWD / "__milhoja_codes"
     for tf_data in tf_data_all:
