@@ -21,15 +21,7 @@ def find_milhoja_path(makefile_site, grid_spec):
 
     milhoja_path_from_make = match.group("path")
 
-    # if found string is a relative path,
-    # assuming it is relative to makefile_site
-    # TODO: this is only for test case
-    if not Path(milhoja_path_from_make).is_absolute():
-        return makefile_site.parent / milhoja_path_from_make
-
-    if Path(milhoja_path_from_make).is_dir():
-        return milhoja_path_from_make
-
+    # if the found string is env variable
     if milhoja_path_from_make.startswith("$"):
         # process ${NDIM}
         _NDIM_PATTERN = re.compile(r"\$(\(|{)(\s*NDIM\s*)(}|\))")
@@ -45,6 +37,16 @@ def find_milhoja_path(makefile_site, grid_spec):
             raise ValueError(f"Failed to resolve environment variable {milhoja_path}")
 
         return milhoja_path
+
+    # if found string is a relative path,
+    # assuming it is relative to makefile_site
+    # TODO: this is only for test case
+    if not Path(milhoja_path_from_make).is_absolute():
+        return makefile_site.parent / milhoja_path_from_make
+
+    if Path(milhoja_path_from_make).is_dir():
+        return milhoja_path_from_make
+
 
     # if it reaches here, something went wrong
     raise ValueError(f"Unable to resolve the MILHOJA_PATH = {milhoja_path_from_make}, found in {makefile_site}")
