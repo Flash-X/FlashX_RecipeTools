@@ -18,7 +18,7 @@ dependencies = [
     @git+ssh://git@github.com/ylee88/cg-kit.git""",
     """milhoja
     @git+ssh://git@git.cels.anl.gov/joneal/OrchestrationRuntime.git
-    @98f1055cd53268c24de72aaf7edaea9079236676
+    @402fc8f5404d0d8c389195ce51d9326b9ece5969
     #subdirectory=tools/milhoja_pypkg""",
 ]
 dynamic = ["version"]
