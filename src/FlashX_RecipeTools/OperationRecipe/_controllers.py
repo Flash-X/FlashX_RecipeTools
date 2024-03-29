@@ -11,21 +11,14 @@ from cgkit.cflow.controller import (
 from cgkit.ctree.srctree import SourceTree
 import cgkit.ctree.srctree as srctree
 
-from .nodes import (
+from ..nodes import (
     WorkNode,
     SetupNode,
-    genericBeginNode,
-    genericEndNode,
-    TileIteratorBeginNode,
-    TileIteratorEndNode,
+    GenericBeginNode,
+    GenericEndNode,
 )
-from .constants import (
-    DEVICE_KEY,
-    DEVICE_DEFAULT,
-    DEVICE_CHANGE_KEY,
-    KEEP_KEY,
-    VERBOSE_DEFAULT,
-    OPSPEC_KEY
+from ..constants import (
+    CGKIT_VERBOSITY,
 )
 
 
@@ -34,7 +27,7 @@ INTERNAL_TEMPLATE_PATH = FLASHX_RECIPETOOLS_ROOT / "_internal_tpl"
 
 
 class Ctr_initRecipeNode(AbstractControllerNode):
-    def __init__(self, verbose=VERBOSE_DEFAULT):
+    def __init__(self, verbose=CGKIT_VERBOSITY):
         super().__init__(
             controllerType="modify",
             verbose=verbose,
@@ -42,115 +35,7 @@ class Ctr_initRecipeNode(AbstractControllerNode):
         )
 
     def __call__(self, graph, node, nodeAttributes):
-        graph.setNodeAttribute(node, DEVICE_KEY, DEVICE_DEFAULT)
-        nodeObj = nodeAttributes["obj"]
-        if hasattr(nodeObj, "opspec"):
-            graph.setNodeAttribute(node, OPSPEC_KEY, nodeObj.opspec)
         return CtrRet.SUCCESS
-
-
-class Ctr_SetupEdge(AbstractControllerEdge):
-    def __init__(self, verbose=VERBOSE_DEFAULT):
-        super().__init__(controllerType="view", verbose=verbose, verbose_prefix="[Ctr_SetupEdge]")
-
-    def __call__(self, graph, srcNode, srcAttribute, trgNode, trgAttribute, edgeAttribute):
-        assert "obj" in srcAttribute, srcAttribute.keys()
-        assert "obj" in trgAttribute, trgAttribute.keys()
-        if (
-            isinstance(srcAttribute["obj"], WorkNode)
-            and isinstance(trgAttribute["obj"], WorkNode)
-            and DEVICE_KEY in srcAttribute
-            and DEVICE_KEY in trgAttribute
-        ):
-            deviceChangeVal = srcAttribute[DEVICE_KEY] != trgAttribute[DEVICE_KEY]
-            graph.setEdgeAttribute((srcNode, trgNode), DEVICE_CHANGE_KEY, deviceChangeVal)
-        else:
-            graph.setEdgeAttribute((srcNode, trgNode), KEEP_KEY, True)
-        return CtrRet.SUCCESS
-
-
-class Ctr_GetAttributesForSubgraph(AbstractControllerNode):
-    def __init__(self, verbose=VERBOSE_DEFAULT):
-        super().__init__(controllerType="view", verbose=verbose, verbose_prefix="[Ctr_GetAttributesForSubgraph]")
-        self.attribute = dict()
-        self.workArgs = dict()
-        self.opSpecs = dict()
-
-    def __call__(self, graph, node, nodeAttribute):
-        # get device(s)
-        if DEVICE_KEY in nodeAttribute:
-            if DEVICE_KEY not in self.attribute:
-                self.attribute[DEVICE_KEY] = nodeAttribute[DEVICE_KEY]
-            elif nodeAttribute[DEVICE_KEY] not in self.attribute[DEVICE_KEY]:
-                self.attribute[DEVICE_KEY] = ",".join([self.attribute[DEVICE_KEY], nodeAttribute[DEVICE_KEY]])
-        # gather names of operation spec
-        if OPSPEC_KEY in nodeAttribute:
-            self.opSpecs[nodeAttribute["obj"].name] = nodeAttribute[OPSPEC_KEY]
-
-        # get arguments of work nodes
-        if isinstance(nodeAttribute["obj"], WorkNode):
-            assert not nodeAttribute["obj"].name in self.workArgs
-            self.workArgs[nodeAttribute["obj"].name] = nodeAttribute["obj"].args
-        return CtrRet.SUCCESS
-
-    def getAllWorkNames(self):
-        allNames = set()
-        for name in self.workArgs.keys():
-            allNames.add(name)
-        allNames = list(allNames)
-        allNames.sort()
-        return allNames
-
-    def getAllWorkArgs(self):
-        allArgs = set()
-        for args in self.workArgs.values():
-            allArgs = allArgs.union(set(args))
-        allArgs = list(allArgs)
-        allArgs.sort()
-        return allArgs
-
-    def getAllOpSpecs(self):
-        allOpSpecs = set()
-        for opspec in self.opSpecs.values():
-            allOpSpecs.add(opspec)
-        allOpSpecs = list(allOpSpecs)
-        allOpSpecs.sort()
-        return allOpSpecs
-
-
-class Ctr_MarkEdgeAsKeep(AbstractControllerEdge):
-    def __init__(self, verbose=VERBOSE_DEFAULT):
-        super().__init__(controllerType="view", verbose=verbose, verbose_prefix="[Ctr_MarkEdgeAsKeep]")
-
-    def __call__(self, graph, srcNode, srcAttribute, trgNode, trgAttribute, edgeAttribute):
-        # keep edge in coarse graph
-        if KEEP_KEY in edgeAttribute and edgeAttribute[KEEP_KEY]:
-            return CtrRet.SUCCESS
-        # allow edge for subgraph condensation
-        if DEVICE_CHANGE_KEY in edgeAttribute and not edgeAttribute[DEVICE_CHANGE_KEY]:
-            return CtrRet.VOID
-        # otherwise keep edge in coarse graph
-        return CtrRet.SUCCESS
-
-
-class Ctr_InitSubgraph(AbstractControllerGraph):
-    def __init__(self, verbose=VERBOSE_DEFAULT):
-        super().__init__(controllerType="modify", verbose=verbose, verbose_prefix="[Ctr_InitSubgraph]")
-
-    def __call__(self, graph, graphAttribute):
-        # get info from nodes of subgraph
-        ctrNode = Ctr_GetAttributesForSubgraph(verbose=self.verbose)
-        graph.visit(controllerNode=ctrNode)
-        ctrNode.attribute["names"] = ctrNode.getAllWorkNames()
-        ctrNode.attribute["args"] = ctrNode.getAllWorkArgs()
-        ctrNode.attribute["opspecs"] = ctrNode.getAllOpSpecs()
-        # set attributes of subgraph
-        if self.verbose:
-            print(self.verbose_prefix, f"Set subgraph attributes={ctrNode.attribute}")
-        for key, val in ctrNode.attribute.items():
-            graph.setGraphAttribute(key, val)
-        return CtrRet.SUCCESS
-
 
 #---------------------
 #-Parsing
@@ -198,7 +83,7 @@ def _encloseConnector(tree, startswith, endswith):
     return tree
 
 class Ctr_ParseGraph(AbstractControllerGraph):
-    def __init__(self, templatePath="cg-tpl", indentSpace=" " * 3, verbose=VERBOSE_DEFAULT):
+    def __init__(self, templatePath="cg-tpl", indentSpace=" " * 3, verbose=CGKIT_VERBOSITY):
         super().__init__(controllerType="view", verbose=verbose, verbose_prefix="[Ctr_ParseGraph]")
         self.templatePath = Path(templatePath)
         self._stree = SourceTree(self.templatePath, indentSpace, verbose=verbose, verbosePre="!", verbosePost="")
@@ -290,7 +175,7 @@ class Ctr_ParseGraph(AbstractControllerGraph):
 
 
 class Ctr_ParseNode(AbstractControllerNode):
-    def __init__(self, ctrParseGraph, workTemplate="cg-tpl.work.json", verbose=VERBOSE_DEFAULT):
+    def __init__(self, ctrParseGraph, workTemplate="cg-tpl.work.json", verbose=CGKIT_VERBOSITY):
         super().__init__(controllerType="view", verbose=verbose, verbose_prefix="[Ctr_ParseNode]")
         self._ctrParseGraph = ctrParseGraph
         self._templatePath = ctrParseGraph.templatePath
@@ -303,14 +188,10 @@ class Ctr_ParseNode(AbstractControllerNode):
             return self._call_WorkNode(nodeAttribute["obj"], graph, node, nodeAttribute)
         elif isinstance(nodeAttribute["obj"], SetupNode):
             return self._call_SetupNode(nodeAttribute["obj"], graph, node, nodeAttribute)
-        elif isinstance(nodeAttribute["obj"], genericBeginNode):
+        elif isinstance(nodeAttribute["obj"], GenericBeginNode):
             return self._call_GenericBeginNode(nodeAttribute["obj"], graph, node, nodeAttribute)
-        elif isinstance(nodeAttribute["obj"], genericEndNode):
+        elif isinstance(nodeAttribute["obj"], GenericEndNode):
             return self._call_GenericEndNode(nodeAttribute["obj"], graph, node, nodeAttribute)
-        elif isinstance(nodeAttribute["obj"], TileIteratorBeginNode):
-            return self._call_TileItoratorBeginNode(nodeAttribute["obj"], graph, node, nodeAttribute)
-        elif isinstance(nodeAttribute["obj"], TileIteratorEndNode):
-            return self._call_TileItoratorEndNode(nodeAttribute["obj"], graph, node, nodeAttribute)
         else:
             if self.verbose:
                 print(self.verbose_prefix, f"Nothing to parse for node object {type(nodeAttribute['obj'])}")
@@ -318,18 +199,10 @@ class Ctr_ParseNode(AbstractControllerNode):
 
     def _call_WorkNode(self, workNode, graph, node, nodeAttribute):
         assert isinstance(workNode, WorkNode), type(workNode)
-        # setup device dependent parsing
-        if DEVICE_KEY in nodeAttribute:
-            device = nodeAttribute[DEVICE_KEY]
-        else:
-            device = None
         tree_work = self._tree_work
         assert tree_work is not None
         # set function name
-        baseName = getattr(workNode, "name")
-        fnName = f"{baseName}_{device}"
-        if device is None:
-            fnName = baseName
+        fnName = getattr(workNode, "name")
         # set function arguments
         fnArgs = getattr(workNode, "args")
         fnArgs = ", ".join(fnArgs)
@@ -345,7 +218,7 @@ class Ctr_ParseNode(AbstractControllerNode):
         return ctrret
 
     def _call_GenericBeginNode(self, beginNode, graph, node, nodeAttribute):
-        assert isinstance(beginNode, genericBeginNode), type(beginNode)
+        assert isinstance(beginNode, GenericBeginNode), type(beginNode)
         assert 1 == nodeAttribute["obj"].nEndNodes()  # TODO can be made more general for multiple end nodes
         if self.verbose:
             print(self.verbose_prefix, f"Parse code of node type={beginNode.type}, name={beginNode.name}")
@@ -373,7 +246,7 @@ class Ctr_ParseNode(AbstractControllerNode):
         return ctrret
 
     def _call_GenericEndNode(self, endNode, graph, node, nodeAttribute):
-        assert isinstance(endNode, genericEndNode), type(endNode)
+        assert isinstance(endNode, GenericEndNode), type(endNode)
         assert endNode.name == endNode.beginNode.name
         # TODO check if all end nodes were visited
         if self.verbose:
@@ -387,62 +260,6 @@ class Ctr_ParseNode(AbstractControllerNode):
             self._ctrParseGraph.popSourceTreePath(linkKeyList)
             return CtrRet.SUCCESS
         return CtrRet.ERROR
-
-
-    def _call_TileItoratorBeginNode(self, beginNode, graph, node, nodeAttribute):
-        assert isinstance(beginNode, TileIteratorBeginNode), type(beginNode)
-        assert 1 == nodeAttribute["obj"].nEndNodes()  # TODO can be made more general for multiple end nodes
-        if self.verbose:
-            print(self.verbose_prefix, f"Parse code of node type={beginNode.type}, name={beginNode.name}")
-        tree_begin = srctree.load(INTERNAL_TEMPLATE_PATH / "cg-tpl.tileLoop.json")
-
-        itorVar = beginNode.itorVar
-        itorType = beginNode.itorType
-        itorOptions =  ", ".join(
-            [f"{k}={v}" for k, v in beginNode.itorOptions.items()]
-        )
-        tree_begin["_param:itorArgs"] = ", ".join(
-            filter(None, [itorVar, itorType, itorOptions])
-        )
-
-        assert 0 < len(srctree.search_connectors(tree_begin))
-        # tree_begin = _encloseConnector(tree_begin, beginNode.startswith, beginNode.endswith)
-        ctrret, pathInfo = _insertConnectors(self._ctrParseGraph, tree_begin, self.verbose, self.verbose_prefix)
-        returnStackKey = beginNode.name
-        i = 0
-        while returnStackKey in self._beginEnd_callReturnStack.keys():
-            i += 1
-            returnStackKey = f"{beginNode.name}_{i}"
-        # save return stack key for processing correcponding endNode
-        beginNode.returnStackKey = returnStackKey
-
-        self._beginEnd_callReturnStack[returnStackKey] = list()
-        callReturnStack = self._beginEnd_callReturnStack[returnStackKey]
-
-        callReturnStack.append(ctrret)
-        if CtrRet.SUCCESS == ctrret:
-            stree = self._ctrParseGraph.getSourceTree()
-            linkKeyList = srctree.search_links(tree_begin)
-            self._ctrParseGraph.pushLinks(linkKeyList)
-            self._ctrParseGraph.pushSourceTreePath(stree.getLastLinkPath(linkKeyList))
-        return ctrret
-
-    def _call_TileItoratorEndNode(self, endNode, graph, node, nodeAttribute):
-        assert isinstance(endNode, TileIteratorEndNode), type(endNode)
-        assert endNode.name == endNode.beginNode.name
-        # TODO check if all end nodes were visited
-        if self.verbose:
-            print(self.verbose_prefix, f"Parse code of node type={endNode.type}, name={endNode.name}")
-        # process as generic end node
-        returnStackKey = endNode.beginNode.returnStackKey
-        callReturnStack = self._beginEnd_callReturnStack[returnStackKey]
-        assert isinstance(callReturnStack, list)
-        if CtrRet.SUCCESS == callReturnStack.pop():
-            linkKeyList = self._ctrParseGraph.popLinks()
-            self._ctrParseGraph.popSourceTreePath(linkKeyList)
-            return CtrRet.SUCCESS
-        return CtrRet.ERROR
-
 
     def _call_SetupNode(self, setupNode, graph, node, nodeAttribute):
         assert isinstance(setupNode, SetupNode), type(setupNode)
@@ -457,7 +274,7 @@ class Ctr_ParseNode(AbstractControllerNode):
 
 
 class Ctr_ParseMultiEdge(AbstractControllerMultiEdge):
-    def __init__(self, ctrParseGraph, templatePath="cg-tpl", verbose=VERBOSE_DEFAULT):
+    def __init__(self, ctrParseGraph, templatePath="cg-tpl", verbose=CGKIT_VERBOSITY):
         super().__init__(controllerType="view", verbose=verbose, verbose_prefix="[Ctr_ParseMultiEdge]")
         self._ctrParseGraph = ctrParseGraph
         self._templatePath = ctrParseGraph.templatePath
