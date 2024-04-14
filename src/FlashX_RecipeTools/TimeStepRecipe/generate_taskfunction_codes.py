@@ -7,49 +7,29 @@ from loguru import logger
 
 from .construct_partial_tf_spec import construct_partial_tf_spec
 
-# TODO: better implementation for this
-def find_milhoja_path(makefile_site, grid_spec):
-    _MILHOJA_PATH_PATTERN = re.compile(r"(MILHOJA_PATH)\s+=\s+(?P<path>\S+)")
-    with open(makefile_site, "r") as f:
-        for line in f.readlines():
-            match = re.match(_MILHOJA_PATH_PATTERN, line)
-            if match:
-                break
+from ..utils import MakefileParser
 
-    if not match:
-        raise KeyError("MILHOJA_PATH is not found in Makefile.h")
+def find_milhoja_path(objdir):
+    """
+    Find the Milhoja installation path by searching
+    "MILHOJA_PATH" macro in the Makefile.h and return its value
+    """
 
-    milhoja_path_from_make = match.group("path")
-
-    # if the found string is env variable
-    if milhoja_path_from_make.startswith("$"):
-        # process ${NDIM}
-        _NDIM_PATTERN = re.compile(r"\$(\(|{)(\s*NDIM\s*)(}|\))")
-        milhoja_path_from_make = re.sub(
-            _NDIM_PATTERN, f"{grid_spec['dimension']}", milhoja_path_from_make
-        )
-        # resolve environment variable TODO: recursive?
-        _ENV_NAME = re.compile(r"\$(\(|{)(?P<env_name>\s*\S+\s*)(}|\))")
-        match = re.match(_ENV_NAME, milhoja_path_from_make)
-        milhoja_path = os.environ[match.group("env_name")]
-
-        if not Path(milhoja_path).is_dir():
-            raise ValueError(f"Failed to resolve environment variable {milhoja_path}")
-
-        return milhoja_path
+    # parse "Makefile" also, in order to resolve macros defined in there. e.g., NDIM
+    makefile = MakefileParser([objdir / "Makefile", objdir / "Makefile.h"])
+    milhoja_path = makefile.expand_macro("MILHOJA_PATH")
 
     # if found string is a relative path,
     # assuming it is relative to makefile_site
     # TODO: this is only for test case
-    if not Path(milhoja_path_from_make).is_absolute():
-        return makefile_site.parent / milhoja_path_from_make
+    if not Path(milhoja_path).is_absolute():
+        return objdir / milhoja_path
 
-    if Path(milhoja_path_from_make).is_dir():
-        return milhoja_path_from_make
-
+    if Path(milhoja_path).is_dir():
+        return milhoja_path
 
     # if it reaches here, something went wrong
-    raise ValueError(f"Unable to resolve the MILHOJA_PATH = {milhoja_path_from_make}, found in {makefile_site}")
+    raise ValueError(f"Unable to resolve the MILHOJA_PATH = {milhoja_path}")
 
 
 def generate_grid_json(simulation_h_path:Path, grid_json_path:Path) -> dict:
@@ -137,7 +117,7 @@ def generate_taskfunction_codes(tf_data, dest="__milhoja"):
 
     overwrite = True
     indent = 3
-    milhoja_path = find_milhoja_path(objdir / "Makefile.h", grid_spec)
+    milhoja_path = find_milhoja_path(objdir)
 
     tf_spec = milhoja.TaskFunction.from_milhoja_json(tf_spec_json)
 
