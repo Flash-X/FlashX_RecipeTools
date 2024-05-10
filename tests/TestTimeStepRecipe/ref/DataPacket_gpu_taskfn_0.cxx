@@ -24,10 +24,10 @@ _external_Hydro_dt_h{external_Hydro_dt},
 _external_Hydro_dt_d{nullptr},
 _external_Hydro_dtOld_h{external_Hydro_dtOld},
 _external_Hydro_dtOld_d{nullptr},
-_nTiles_h{0},
-_nTiles_d{nullptr},
 _external_Hydro_stage_h{external_Hydro_stage},
 _external_Hydro_stage_d{nullptr},
+_nTiles_h{0},
+_nTiles_d{nullptr},
 _tile_deltas_d{nullptr},
 _tile_arrayBounds_d{nullptr},
 _tile_interior_d{nullptr},
@@ -86,8 +86,8 @@ void DataPacket_gpu_taskfn_0::pack(void) {
     constexpr std::size_t SIZE_CONSTRUCTOR = pad(
     SIZE_EXTERNAL_HYDRO_DT
      + SIZE_EXTERNAL_HYDRO_DTOLD
-     + SIZE_NTILES
      + SIZE_EXTERNAL_HYDRO_STAGE
+     + SIZE_NTILES
     );
     if (SIZE_CONSTRUCTOR % ALIGN_SIZE != 0)
         throw std::logic_error("[DataPacket_gpu_taskfn_0 pack] SIZE_CONSTRUCTOR padding failure");
@@ -252,15 +252,15 @@ void DataPacket_gpu_taskfn_0::pack(void) {
     ptr_p+=SIZE_EXTERNAL_HYDRO_DTOLD;
     ptr_d+=SIZE_EXTERNAL_HYDRO_DTOLD;
 
-    int* _nTiles_p = static_cast<int*>( static_cast<void*>(ptr_p) );
-    _nTiles_d = static_cast<int*>( static_cast<void*>(ptr_d) );
-    ptr_p+=SIZE_NTILES;
-    ptr_d+=SIZE_NTILES;
-
     int* _external_Hydro_stage_p = static_cast<int*>( static_cast<void*>(ptr_p) );
     _external_Hydro_stage_d = static_cast<int*>( static_cast<void*>(ptr_d) );
     ptr_p+=SIZE_EXTERNAL_HYDRO_STAGE;
     ptr_d+=SIZE_EXTERNAL_HYDRO_STAGE;
+
+    int* _nTiles_p = static_cast<int*>( static_cast<void*>(ptr_p) );
+    _nTiles_d = static_cast<int*>( static_cast<void*>(ptr_d) );
+    ptr_p+=SIZE_NTILES;
+    ptr_d+=SIZE_NTILES;
     ptr_p = copyInStart_p_ + SIZE_CONSTRUCTOR;
     ptr_d = copyInStart_d_ + SIZE_CONSTRUCTOR;
     real* _tile_deltas_p = static_cast<real*>( static_cast<void*>(ptr_p) );
@@ -302,8 +302,8 @@ void DataPacket_gpu_taskfn_0::pack(void) {
     //memcopy phase
     std::memcpy(_external_Hydro_dt_p, static_cast<void*>(&_external_Hydro_dt_h), SIZE_EXTERNAL_HYDRO_DT);
     std::memcpy(_external_Hydro_dtOld_p, static_cast<void*>(&_external_Hydro_dtOld_h), SIZE_EXTERNAL_HYDRO_DTOLD);
-    std::memcpy(_nTiles_p, static_cast<void*>(&_nTiles_h), SIZE_NTILES);
     std::memcpy(_external_Hydro_stage_p, static_cast<void*>(&_external_Hydro_stage_h), SIZE_EXTERNAL_HYDRO_STAGE);
+    std::memcpy(_nTiles_p, static_cast<void*>(&_nTiles_h), SIZE_NTILES);
     char* char_ptr;
     for (auto n = 0; n < _nTiles_h; n++) {
         Tile* tileDesc_h = tiles_[n].get();

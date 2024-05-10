@@ -41,10 +41,10 @@ public:
     real* _external_Hydro_dt_d;
     real _external_Hydro_dtOld_h;
     real* _external_Hydro_dtOld_d;
-    int _nTiles_h;
-    int* _nTiles_d;
     int _external_Hydro_stage_h;
     int* _external_Hydro_stage_d;
+    int _nTiles_h;
+    int* _nTiles_d;
     real* _tile_deltas_d;
     int* _tile_arrayBounds_d;
     int* _tile_interior_d;
@@ -89,8 +89,8 @@ private:
 
     static constexpr std::size_t SIZE_EXTERNAL_HYDRO_DT = sizeof(real);
     static constexpr std::size_t SIZE_EXTERNAL_HYDRO_DTOLD = sizeof(real);
-    static constexpr std::size_t SIZE_NTILES = sizeof(int);
     static constexpr std::size_t SIZE_EXTERNAL_HYDRO_STAGE = sizeof(int);
+    static constexpr std::size_t SIZE_NTILES = sizeof(int);
     static constexpr std::size_t SIZE_TILE_DELTAS = MILHOJA_MDIM * sizeof(real);
     static constexpr std::size_t SIZE_TILE_ARRAYBOUNDS = 2 * MILHOJA_MDIM * sizeof(int);
     static constexpr std::size_t SIZE_TILE_INTERIOR = 2 * MILHOJA_MDIM * sizeof(int);
