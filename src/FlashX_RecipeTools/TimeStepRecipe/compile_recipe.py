@@ -45,30 +45,20 @@ def determine_output_files(tfData_all:list) -> set:
         if data_type not in SUPPORTED["data_type"]:
             raise NotImplementedError(f"{data_type} is not supported yet")
 
-        # determine files too be generated
-        if offloading == "OpenACC":
-            files_to_be_generated = [
-                task_function["cpp_source"],
-                task_function["c2f_source"],
-                task_function["fortran_source"],
-            ]
-            for filename in files_to_be_generated:
-                # filename must be unique
-                if filename in output_files:
-                    raise ValueError(f"Duplicate filename detected: {filename}")
-                output_files.add(filename)
-
-        if data_type == "DataPacket":
-            files_to_be_generated = [
-                data_item["header"],
-                data_item["module"],
-                data_item["source"],
-            ]
-            for filename in files_to_be_generated:
-                # filename must be unique
-                if filename in output_files:
-                    raise ValueError(f"Duplicate filename detected: {filename}")
-                output_files.add(filename)
+        # determine files to be generated
+        files_to_be_generated = [
+            task_function["cpp_source"],
+            task_function["c2f_source"],
+            task_function["fortran_source"],
+            data_item["header"],
+            data_item["module"],
+            data_item["source"],
+        ]
+        for filename in files_to_be_generated:
+            # filename must be unique
+            if filename in output_files:
+                raise ValueError(f"Duplicate filename detected: {filename}")
+            output_files.add(filename)
 
     return output_files
 
