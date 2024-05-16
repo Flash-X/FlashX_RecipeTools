@@ -15,7 +15,7 @@ requires-python = ">=3.9"
 dependencies = [
     "loguru",
     """Code-Generation-Toolkit@git+ssh://git@github.com/ylee88/cg-kit.git""",
-    """milhoja@git+ssh://git@git.cels.anl.gov/joneal/OrchestrationRuntime.git@eb897c7d8c7d366cdc7ecb83e4dcf1a4b967b01f#subdirectory=tools/milhoja_pypkg""",
+    """milhoja@git+ssh://git@git.cels.anl.gov/joneal/OrchestrationRuntime.git@5751338b383576604b79800187a4c72f37cde8ce#subdirectory=tools/milhoja_pypkg""",
 ]
 dynamic = ["version"]
 
