@@ -420,7 +420,7 @@ def generate_op_spec(name: str, interface_file, debug=False, call_cpp=False):
     :param str interface_file: The path to the interface file.
     """
     # get interface path
-    interface_path = Path(interface_file).resolve()
+    interface_path = Path(interface_file)
     if_name = os.path.basename(interface_path)
 
     if not interface_path.is_file():
