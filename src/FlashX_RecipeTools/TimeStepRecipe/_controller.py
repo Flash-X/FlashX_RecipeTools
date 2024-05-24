@@ -180,7 +180,7 @@ class Ctr_ParseTFGraph(AbstractControllerGraph):
             self.concurrent_call_graph.clear()
             # entering subgraph
             self._log.info("entering subgraph level={level}", level=graph.level)
-            if graph.level > 1:    # TODO: need to know why this is needed
+            if graph.level > 0 and graph.leaf:    # TODO: need to know why this is needed
                 objdir = graphAttribute["objdir"]
                 device = graphAttribute["device"]
                 subroutines = graphAttribute["names"]
@@ -204,7 +204,7 @@ class Ctr_ParseTFGraph(AbstractControllerGraph):
     def q(self, graph, graphAttribute):
         self._log.info("exiting subgraph level={level}", level=graph.level)
         # push call graph to TFspec
-        if graph.level > 1:    # TODO: need to know why this is needed
+        if graph.level > 0 and graph.leaf:    # TODO: need to know why this is needed
             self.getCurrentTF()["subroutine_call_graph"] = list(self.call_graph)
         return CtrRet.SUCCESS
 
