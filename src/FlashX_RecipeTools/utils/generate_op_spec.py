@@ -116,21 +116,29 @@ def format_rw_list(line: str) -> list:
     rw_range = []
     pattern = re.compile(mbc.RANGE_REGEX)
     for expr in range_expressions:
-        rng = expr.split(":")
-        low,high = rng[0],rng[1]
-        lo_success = pattern.match(low)
-        hi_success = pattern.match(high)
+        # case1: if the expr is given as array range
+        if ":" in expr:
+            rng = expr.split(":")
+            low,high = rng[0],rng[1]
+            lo_success = pattern.match(low)
+            hi_success = pattern.match(high)
 
-        # if the expressions are valid
-        if lo_success and hi_success:
-            rng = []
-            for ex in [low,high]:
-                rng.append(evaluate_simple_expression(ex))
-            rw_range.extend(list(range(rng[0], rng[1]+1)))
+            # if the expressions are valid
+            if lo_success and hi_success:
+                rng = []
+                for ex in [low,high]:
+                    rng.append(evaluate_simple_expression(ex))
+                rw_range.extend(list(range(rng[0], rng[1]+1)))
+            else:
+                warn(f"Expression {expr} is not valid. Ignoring.")
+        # case2: if the expr is a simple expression of an integer
         else:
-            warn(f"Expression {expr} is not valid. Ignoring.")
+            if pattern.match(expr):
+                rw_range.append(evaluate_simple_expression(expr))
+            else:
+                warn(f"Expression {expr} is not valid. Ignoring.")
 
-    return rw_range
+    return sorted(rw_range)
 
 
 def __format_structure_index(line) -> list:
