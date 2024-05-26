@@ -21,18 +21,11 @@ def load_recipe(objdir):
 def test_spark_hydro():
 
     recipe = load_recipe(CWD)
-    # writes all needed operation specs (JSONs) by processing interface files
-    recipe.collect_operation_specs()
 
-    # traversing recipe, determine task functions,
-    # and write needed Makefile to be compiled
-    tf_data_all = flashx.compile_recipe(recipe, generate_makefile=True, makefile_name="__Makefile.Milhoja")
-
-    # initiate Milhoja_pypkg to write source codes for
-    # task functions and data items into destination
     destination = CWD / "__milhoja_codes"
-    for tf_data in tf_data_all:
-        flashx.generate_taskfunction_codes(tf_data, dest=destination)
+
+    ir = recipe.compile()
+    ir.generate_all_codes(dest = destination)
 
     # testing: all expected files should be generated
     actual_generated_files = {file.name for file in Path(destination).iterdir()}

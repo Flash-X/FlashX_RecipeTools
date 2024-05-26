@@ -5,6 +5,18 @@ from loguru import logger
 from functools import wraps
 from pathlib import Path
 
+from .TimeStepIR import TimeStepIR
+
+from ._controller import (
+    Ctr_InitNodeFromOpspec,
+    Ctr_SetupEdge,
+    Ctr_MarkEdgeAsKeep,
+    Ctr_InitSubgraph,
+    Ctr_ParseTFGraph,
+    Ctr_ParseTFNode,
+    Ctr_ParseTFMultiEdge,
+)
+
 from ..nodes import (
     WorkNode,
     TileIteratorBeginNode,
@@ -43,6 +55,8 @@ class TimeStepRecipe(ControlFlowGraph):
     def _shallowCopy(self):
         shallowCopy = super()._shallowCopy()
         shallowCopy.objdir = self.objdir
+        shallowCopy.interface_fnames = self.interface_fnames.copy()
+        shallowCopy.output_fnames = self.output_fnames.copy()
         shallowCopy.opspecs = self.opspecs.copy()
         shallowCopy.opspec_fnames = self.opspec_fnames.copy()
         return shallowCopy
@@ -124,7 +138,7 @@ class TimeStepRecipe(ControlFlowGraph):
     def get_output_fnames(self):
         return set(self.output_fnames)
 
-    def collect_operation_specs(self):
+    def _collect_operation_specs(self):
         """
         Generating required operation spec in JSON format
         by processing interface files recorded under self.interface_fnames.
@@ -157,4 +171,41 @@ class TimeStepRecipe(ControlFlowGraph):
             self.opspec_fnames.update({op_spec_name : op_spec_path})
         return
 
+
+    def compile(self) -> "TimeStepIR":
+        """
+        Compile the recipe and returns an intermediate representation
+        which contains all information for taskfunctions and dataitems
+        and corresponding hierarchical graph
+        """
+
+        # collect and generate operation specs
+        self._collect_operation_specs()
+
+        # gather argument list of each nodes
+        self.traverse(controllerNode=Ctr_InitNodeFromOpspec())
+
+        # transform into hierarchical graph
+        self.traverse(controllerEdge=Ctr_SetupEdge())
+        h = self.extractHierarchicalGraph(
+            controllerMarkEdge=Ctr_MarkEdgeAsKeep(),
+            controllerInitSubgraph=Ctr_InitSubgraph()
+        )
+
+        # determine taskfunction data
+        ctrParseTFGraph = Ctr_ParseTFGraph()
+        ctrParseTFNode = Ctr_ParseTFNode(ctrParseTFGraph)
+        ctrParseTFMultiedge = Ctr_ParseTFMultiEdge(ctrParseTFGraph)
+        h.traverseHierarchy(
+            controllerGraph=ctrParseTFGraph,
+            controllerNode=ctrParseTFNode,
+            controllerMultiEdge=ctrParseTFMultiedge
+        )
+        tf_data_all = list(ctrParseTFGraph.getAllTFData())
+
+        ir = TimeStepIR()
+        ir.flowGraph  = h
+        ir.tf_data_all = tf_data_all
+
+        return ir
 
