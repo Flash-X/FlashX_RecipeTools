@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 import json
 
@@ -56,7 +58,7 @@ class TimeStepIR:
         return self._grid_json_path
 
     @flowGraph.setter
-    def flowGraph(self, value:"TimeStepRecipe"):
+    def flowGraph(self, value:TimeStepRecipe):
         self._flowGraph = value._shallowCopy()
 
     @tf_data_all.setter
@@ -68,15 +70,15 @@ class TimeStepIR:
         self._output_fnames = value
 
     @objdir.setter
-    def objdir(self, value:"Path"):
+    def objdir(self, value:Path):
         self._objdir = value
 
     @milhoja_path.setter
-    def milhoja_path(self, value:"Path"):
+    def milhoja_path(self, value:Path):
         self._milhoja_path = value
 
     @grid_json_path.setter
-    def grid_json_path(self, value:"Path"):
+    def grid_json_path(self, value:Path):
         self._grid_json_path = value
 
 
@@ -210,7 +212,7 @@ class TimeStepIR:
         self.grid_json_path = grid_json_path
 
 
-    def _generate_milhoja_codes(self, dest:"Path"):
+    def _generate_milhoja_codes(self, dest:Path):
         assert self.tf_data_all is not None
 
         objdir = self.objdir

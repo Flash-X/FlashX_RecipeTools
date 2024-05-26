@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 
 from cgkit.cflow.graph import ControlFlowGraph
@@ -172,7 +174,7 @@ class TimeStepRecipe(ControlFlowGraph):
         return
 
 
-    def compile(self) -> "TimeStepIR":
+    def compile(self) -> TimeStepIR:
         """
         Compile the recipe and returns an intermediate representation
         which contains all information for taskfunctions and dataitems
