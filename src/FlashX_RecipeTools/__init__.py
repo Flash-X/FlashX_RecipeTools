@@ -9,8 +9,7 @@ from .utils import (
 
 from .TimeStepRecipe import (
     TimeStepRecipe,
-    compile_recipe,
-    generate_taskfunction_codes,
+    TimeStepIR,
 )
 
 from .OperationRecipe import (
