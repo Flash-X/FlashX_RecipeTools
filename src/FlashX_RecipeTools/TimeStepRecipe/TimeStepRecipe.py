@@ -140,6 +140,50 @@ class TimeStepRecipe(ControlFlowGraph):
     def get_output_fnames(self):
         return set(self.output_fnames)
 
+    def plot(self, ax=None, nodeLabels=False, edgeLabels=False):
+        """
+        Redefine cgkit.cflow.basegraph_networkx.BaseGraphNetworkX.plot()
+        """
+        import networkx as nx
+        from copy import deepcopy
+        from matplotlib import pyplot as plt
+
+        if ax is None:
+            ax = plt.gcf().gca()
+
+        xmin, xmax = ax.axes.get_xlim()
+        ymin, ymax = ax.axes.get_ylim()
+
+        xsize = xmax - xmin
+        ysize = ymax - ymin
+
+        pos_nodes     = self.linear_layout(self.G, self.root)
+        pos_sublabels = deepcopy(pos_nodes)
+        pos_suplabels = deepcopy(pos_nodes)
+        for node in pos_sublabels.keys():
+            pos_sublabels[node][1] -= 0.0012*ysize
+        for node in pos_suplabels.keys():
+            pos_suplabels[node][1] += 0.0012*xsize
+
+        nx.draw_networkx_nodes(self.G, pos_nodes, ax=ax, node_size=600)
+        nx.draw_networkx_edges(self.G, pos_nodes,
+                               ax=ax,
+                               min_source_margin=15,
+                               min_target_margin=15)
+        nx.draw_networkx_labels(self.G, pos_nodes, ax=ax, font_size=15)
+        if nodeLabels:
+            labels_device = nx.get_node_attributes(self.G, 'device')
+            # labels_action = deepcopy(labels_device)
+            labels_name = {n:"" for n in range(len(pos_nodes))}
+            for node in labels_name.keys():
+                if hasattr(self.G.nodes[node]["obj"], "name"):
+                    labels_name[node] = self.G.nodes[node]["obj"].name
+
+            nx.draw_networkx_labels(self.G, pos_sublabels, ax=ax, labels=labels_device, font_size=10)
+            nx.draw_networkx_labels(self.G, pos_suplabels, ax=ax, labels=labels_name, font_size=10)
+        if edgeLabels:
+            nx.draw_networkx_edge_labels(self.G, pos_nodes, ax=ax, font_size=10)
+
     def _collect_operation_specs(self):
         """
         Generating required operation spec in JSON format
