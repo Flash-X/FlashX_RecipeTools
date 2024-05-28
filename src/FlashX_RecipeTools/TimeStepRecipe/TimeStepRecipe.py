@@ -17,12 +17,19 @@ from ._controller import (
     Ctr_ParseTFGraph,
     Ctr_ParseTFNode,
     Ctr_ParseTFMultiEdge,
+    Ctr_AddOrchMarkers,
+)
+
+## DEV
+from ._controller_ta import (
+    Ctr_InitSubRootNode,
 )
 
 from ..nodes import (
     WorkNode,
-    TileIteratorBeginNode,
-    TileIteratorEndNode,
+    LeafNode,
+    OrchestrationBeginNode,
+    OrchestrationEndNode,
 )
 from ..constants import (
     DEVICE_KEY,
@@ -77,6 +84,15 @@ class TimeStepRecipe(ControlFlowGraph):
         return wrapper
 
     @nodeappending
+    def add_leaf(self, after:int):
+        node = LeafNode()
+        handle = self.linkNode(node)(after)
+
+        self._log.info("adding LeafNode")
+
+        return handle
+
+    @nodeappending
     def add_work(self, name:str, after:int, map_to:str):
         # assuming the node name and subroutine name are the same
         fnName = name
@@ -99,8 +115,8 @@ class TimeStepRecipe(ControlFlowGraph):
         return handle
 
     @nodeappending
-    def begin_orchestration(self, itor_type, after, **kwargs):
-        node = TileIteratorBeginNode("itor", itor_type, **kwargs)
+    def begin_orchestration(self, after, **kwargs):
+        node = OrchestrationBeginNode()
         handle = self.linkNode(node)(after)
         self.setNodeAttribute(handle, ORCHESTRATION_KEY, "begin")
 
@@ -111,7 +127,7 @@ class TimeStepRecipe(ControlFlowGraph):
     @nodeappending
     def end_orchestration(self, begin_node, after):
         begin_node_obj = self.G.nodes[begin_node]["obj"]   #TODO: cgkit.BaseGraphNetworkX.getNodeAttribute?
-        node = TileIteratorEndNode(begin_node_obj)
+        node = OrchestrationEndNode(begin_node_obj)
         handle = self.linkNode(node)(after)
         self.setNodeAttribute(handle, ORCHESTRATION_KEY, "end")
 
@@ -140,37 +156,41 @@ class TimeStepRecipe(ControlFlowGraph):
     def get_output_fnames(self):
         return set(self.output_fnames)
 
-    def plot(self, ax=None, nodeLabels=False, edgeLabels=False):
+    def plot(self, fig=None, ax=None, nodeLabels=False, edgeLabels=False):
         """
         Redefine cgkit.cflow.basegraph_networkx.BaseGraphNetworkX.plot()
         """
         import networkx as nx
         from copy import deepcopy
         from matplotlib import pyplot as plt
+        from matplotlib import transforms
+
+        if fig is None:
+            fig = plt.gcf()
 
         if ax is None:
             ax = plt.gcf().gca()
 
-        xmin, xmax = ax.axes.get_xlim()
-        ymin, ymax = ax.axes.get_ylim()
-
-        xsize = xmax - xmin
-        ysize = ymax - ymin
-
-        pos_nodes     = self.linear_layout(self.G, self.root)
+        # pos_nodes     = nx.drawing.layout.spring_layout(self.G)
+        pos_nodes     = self.linear_layout(self.G, self.root, posx=0, posy=0)
         pos_sublabels = deepcopy(pos_nodes)
         pos_suplabels = deepcopy(pos_nodes)
-        for node in pos_sublabels.keys():
-            pos_sublabels[node][1] -= 0.0012*ysize
-        for node in pos_suplabels.keys():
-            pos_suplabels[node][1] += 0.0012*xsize
 
         nx.draw_networkx_nodes(self.G, pos_nodes, ax=ax, node_size=600)
+        nx.draw_networkx_labels(self.G, pos_nodes, ax=ax, font_color="whitesmoke", font_size=15)
         nx.draw_networkx_edges(self.G, pos_nodes,
                                ax=ax,
                                min_source_margin=15,
                                min_target_margin=15)
-        nx.draw_networkx_labels(self.G, pos_nodes, ax=ax, font_size=15)
+
+        # positions for labels must be determined **after** nodes and edges drawing
+        ymin, ymax = ax.get_ylim()
+        ysize = ymax - ymin
+        for node in pos_sublabels.keys():
+            pos_sublabels[node][1] -= 0.06*ysize
+        for node in pos_suplabels.keys():
+            pos_suplabels[node][1] += 0.06*ysize
+
         if nodeLabels:
             labels_device = nx.get_node_attributes(self.G, 'device')
             # labels_action = deepcopy(labels_device)
@@ -228,8 +248,11 @@ class TimeStepRecipe(ControlFlowGraph):
         # collect and generate operation specs
         self._collect_operation_specs()
 
-        # gather argument list of each nodes
+        # gather argument list of each work nodes
         self.traverse(controllerNode=Ctr_InitNodeFromOpspec())
+
+        # add orch markers
+        self.traverse(controllerEdge=Ctr_AddOrchMarkers())
 
         # transform into hierarchical graph
         self.traverse(controllerEdge=Ctr_SetupEdge())
@@ -248,6 +271,8 @@ class TimeStepRecipe(ControlFlowGraph):
             controllerMultiEdge=ctrParseTFMultiedge
         )
         tf_data_all = list(ctrParseTFGraph.getAllTFData())
+
+        h.traverse(controllerNode=Ctr_InitSubRootNode())
 
         ir = TimeStepIR()
         ir.flowGraph  = h

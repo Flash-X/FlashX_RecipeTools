@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 from .construct_partial_tf_spec import construct_partial_tf_spec
 from ..utils import MakefileParser
 
+
 SUPPORTED = {
     "processor": ["gpu", "cpu"],
     "computation_offloading": ["OpenACC"],
@@ -59,7 +60,7 @@ class TimeStepIR:
 
     @flowGraph.setter
     def flowGraph(self, value:TimeStepRecipe):
-        self._flowGraph = value._shallowCopy()
+        self._flowGraph = value
 
     @tf_data_all.setter
     def tf_data_all(self, value:list):
@@ -95,6 +96,8 @@ class TimeStepIR:
         self._find_milhoja_path()
         # generate taskfunction and dataitem codes.
         self._generate_milhoja_codes(dest)
+        # generate TimeAdvance code
+        self._generate_TimeAdvance_code(dest)
 
 
     def _determine_milhoja_code_fnames(self) -> None:
@@ -217,6 +220,10 @@ class TimeStepIR:
     def _generate_milhoja_codes(self, dest:Path) -> None:
         assert self.tf_data_all is not None
 
+        if not dest.is_dir():
+            logger.warning("Making a destination directory: {_dest}", _dest=dest)
+            dest.mkdir(exist_ok=True)
+
         objdir = self.objdir
 
         for tf_data in self.tf_data_all:
@@ -256,4 +263,10 @@ class TimeStepIR:
                 tf_spec, destination, overwrite, indent, milhoja_logger
             )
 
+
+    def _generate_TimeAdvance_code(self, dest:Path) -> None:
+
+        flowGraph = self.flowGraph
+
+        flowGraph.parseCode()
 

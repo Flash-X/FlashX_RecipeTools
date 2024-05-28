@@ -18,6 +18,9 @@ from ..constants import (
 )
 from ..nodes import (
     WorkNode,
+    OrchestrationBeginNode,
+    OrchestrationEndNode,
+    OrchestrationMarkerNode,
 )
 
 
@@ -51,6 +54,35 @@ class Ctr_InitNodeFromOpspec(AbstractControllerNode):
 
         return CtrRet.SUCCESS
 
+class Ctr_AddOrchMarkers(AbstractControllerEdge):
+    def __init__(self):
+        super().__init__(controllerType="modify")
+        self._log = logger
+
+    def __call__(self, graph, srcNode, srcAttribute, trgNode, trgAttribute, edgeAttribute):
+        assert "obj" in srcAttribute, srcAttribute.keys()
+        assert "obj" in trgAttribute, trgAttribute.keys()
+
+        if isinstance(srcAttribute["obj"], OrchestrationBeginNode) or isinstance(
+            trgAttribute["obj"], OrchestrationEndNode
+        ):
+            self._log.info(
+                "inserting a marker between {srcNode} and {trgNode}",
+                srcNode=srcAttribute["obj"].name,
+                trgNode=trgAttribute["obj"].name
+            )
+            markerObj = OrchestrationMarkerNode()
+            marker = graph.addNode(markerObj)
+            graph.addEdge(srcNode, marker)
+            graph.addEdge(marker, trgNode)
+
+    def q(self, graph, srcNode, srcAttribute, trgNode, trgAttribute, edgeAttribute):
+        if isinstance(srcAttribute["obj"], OrchestrationBeginNode) or isinstance(
+            trgAttribute["obj"], OrchestrationEndNode
+        ):
+            graph.G.remove_edge(srcNode, trgNode)
+
+
 
 class Ctr_SetupEdge(AbstractControllerEdge):
     def __init__(self):
@@ -68,7 +100,18 @@ class Ctr_SetupEdge(AbstractControllerEdge):
         ):
             deviceChangeVal = srcAttribute[DEVICE_KEY] != trgAttribute[DEVICE_KEY]
             graph.setEdgeAttribute((srcNode, trgNode), DEVICE_CHANGE_KEY, deviceChangeVal)
+        elif isinstance(srcAttribute["obj"], OrchestrationMarkerNode) and isinstance(
+            trgAttribute["obj"], WorkNode
+        ):
+            # KEEP_KEY = False for edges between MakerNode -- WorkNode
+            graph.setEdgeAttribute((srcNode, trgNode), KEEP_KEY, False)
+        elif isinstance(srcAttribute["obj"], WorkNode) and isinstance(
+            trgAttribute["obj"], OrchestrationMarkerNode
+        ):
+            # KEEP_KEY = False for edges between MakerNode -- WorkNode
+            graph.setEdgeAttribute((srcNode, trgNode), KEEP_KEY, False)
         else:
+            # otherwise, keep the edge
             graph.setEdgeAttribute((srcNode, trgNode), KEEP_KEY, True)
         return CtrRet.SUCCESS
 
@@ -132,8 +175,11 @@ class Ctr_MarkEdgeAsKeep(AbstractControllerEdge):
 
     def __call__(self, graph, srcNode, srcAttribute, trgNode, trgAttribute, edgeAttribute):
         # keep edge in coarse graph
-        if KEEP_KEY in edgeAttribute and edgeAttribute[KEEP_KEY]:
-            return CtrRet.SUCCESS
+        if KEEP_KEY in edgeAttribute:
+            if edgeAttribute[KEEP_KEY]:
+                return CtrRet.SUCCESS
+            else:
+                return CtrRet.VOID
         # allow edge for subgraph condensation
         if DEVICE_CHANGE_KEY in edgeAttribute and not edgeAttribute[DEVICE_CHANGE_KEY]:
             return CtrRet.VOID
@@ -154,8 +200,9 @@ class Ctr_InitSubgraph(AbstractControllerGraph):
         ctrNode.attribute["args"] = ctrNode.getAllWorkArgs()
         ctrNode.attribute["opspecs"] = ctrNode.getAllOpSpecs()
         ctrNode.attribute["objdir"] = graph.objdir
+        ctrNode.attribute["tfname"] = ""     #TODO: tfname must be determined at here
         # set attributes of subgraph
-        self._log.info("set subgraph attributes={attribute}", attribute=ctrNode.attribute)
+        self._log.info("set subgraph level={level}, attributes={attribute}", level=graph.level, attribute=ctrNode.attribute)
         for key, val in ctrNode.attribute.items():
             graph.setGraphAttribute(key, val)
         return CtrRet.SUCCESS
@@ -163,7 +210,7 @@ class Ctr_InitSubgraph(AbstractControllerGraph):
 
 class Ctr_ParseTFGraph(AbstractControllerGraph):
     def __init__(self):
-        super().__init__(controllerType="view")
+        super().__init__(controllerType="modify")
         self._log = logger
         self.tfData = list()
         self.call_graph = list()
@@ -196,6 +243,8 @@ class Ctr_ParseTFGraph(AbstractControllerGraph):
                 self._log.info("generating TF call graph for {_subroutines}", _subroutines=subroutines)
 
                 tf = self._initTFData(objdir, subroutines, opspec_fnames, device)
+                # save taskfunction name to subgraph
+                graphAttribute["tfname"] = tf["name"]     #TODO: this won't work b/c it is at level=2
 
                 self.tfData.append(tf)
         return CtrRet.SUCCESS
