@@ -290,6 +290,10 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
                             tokens = {"source": common_def["source"], "name": tokens[mbc.COMMON]}
                         else:
                             tokens = common_def
+                    else:
+                        print(tokens)
+                        assert tokens["source"].lower() != "grid_data", \
+                            f"{name}, grid_data cannot be local to function."
                     sbr_defs[name] = tokens
 
             # line is not a milhoja directive
