@@ -88,6 +88,8 @@ class TimeStepIR:
         if dest is None:
             dest = self.objdir
 
+        dest = Path(dest)
+
         # gather filenames to be generated from milhoja_pypkg
         self._determine_milhoja_code_fnames()
         # generate __grid.json
