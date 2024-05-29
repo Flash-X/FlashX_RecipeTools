@@ -96,6 +96,8 @@ class TimeStepIR:
         self._generate_grid_json()
         # find a path to Milhoja installation
         self._find_milhoja_path()
+        # generate Makefile.Milhoja
+        self._generate_makefile()
         # generate taskfunction and dataitem codes.
         self._generate_milhoja_codes(dest)
         # generate TimeAdvance code
@@ -144,6 +146,19 @@ class TimeStepIR:
 
         self.output_fnames = output_files
 
+    def _generate_makefile(self) -> None:
+
+        makefile_path = self._objdir / "Makefile.Milhoja"
+        output_files = self.output_fnames
+        objfiles = []
+        for filename in output_files:
+            name = Path(filename).stem
+            ext = Path(filename).suffix
+            if ext in [".F90", ".cxx"]:
+                objfiles.append(name + ".o")
+        with open(makefile_path, 'w') as fptr:
+            fptr.write("Milhoja += \\\n\t")
+            fptr.write(" \\\n\t".join(sorted(objfiles)))
 
     def _find_milhoja_path(self) -> None:
         """
