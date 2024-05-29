@@ -195,8 +195,8 @@ def __get_directive_tokens(line, debug):
     attrs = __split_non_nested(
         tokens[1].strip(),
         delim=',',
-        nest_begin=['[', '('],
-        nest_end=[')', ']']
+        nest_begin=['[', '(', '{'],
+        nest_end=[')', ']', '}']
     )
 
     # go through each attribute
@@ -268,6 +268,13 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
                 if "source" in tokens and tokens["source"] in {"external", "scratch"}:
                     tokens["extents"] = exts
 
+                if "customdata" in tokens:
+                    print(tokens["customdata"])
+                    if tokens["source"] != "external":
+                        msg = "Only external is allowed to have custom data."
+                        raise ValueError(msg)
+                    tokens["customdata"] = json.loads(tokens["customdata"])
+
                 if in_common:
                     assert name not in common_defs, f"{name} defined twice."
                     common_defs[name] = tokens
@@ -291,7 +298,6 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
                         else:
                             tokens = common_def
                     else:
-                        print(tokens)
                         assert tokens["source"].lower() != "grid_data", \
                             f"{name}, grid_data cannot be local to function."
                     sbr_defs[name] = tokens

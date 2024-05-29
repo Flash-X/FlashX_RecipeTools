@@ -26,6 +26,7 @@ EXTENTS = "extents"
 DTYPE = "type"
 SOURCE = "source"
 LBOUND = "lbound"
+CUSTOMDATA = "customdata"
 
 # Operation Specification Template
 OP_SPEC_TEMPLATE = {

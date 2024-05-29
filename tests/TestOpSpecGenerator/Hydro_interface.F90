@@ -245,7 +245,8 @@ Module Hydro_interface
    !!                   extents=[MILHOJA_BLOCK_GC, NUNK_VARS], &
    !!                   lbound=[tile_lbound, 1]
    !!   _stage :: source=external, &
-   !!             type=integer
+   !!             type=integer, &
+   !!             customdata={"custom": "generator", "info": "here"}
    !!   _dt :: source=external, &
    !!          type=real
    !!   _dtOld :: source=external, &
