@@ -16,9 +16,16 @@ class Ctr_InitSubRootNode(AbstractControllerNode):
         if graph.nodeHasSubgraph(node):
             sGraph = graph.nodeGetSubgraph(node)
             subGraphAttributes = sGraph.G.graph
-            assert isinstance(subGraphAttributes, dict), type(subGraphAttributes)
 
-            print(subGraphAttributes["tfname"])
-            nodeObj.name = subGraphAttributes["tfname"]
+            # the actual information for the taskfunction lies in the sub"sub"graph
+            # as the cgkit generates two-level subgraph.
+            ssGraph = sGraph.nodeGetSubgraph(sGraph.root)
+            subsubGraphAttributes = ssGraph.G.graph
+
+            assert isinstance(subGraphAttributes, dict), type(subGraphAttributes)
+            assert isinstance(subsubGraphAttributes, dict), type(subsubGraphAttributes)
+
+            # bringing the taskfunction name from sub"sub"graph to subgraph.
+            nodeObj.name = subsubGraphAttributes["tfname"]
 
         return CtrRet.SUCCESS
