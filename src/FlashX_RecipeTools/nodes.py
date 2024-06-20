@@ -24,6 +24,7 @@ class WorkNode(WorkNode):
 class LeafNode(LeafNode):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.name = "leaf"
 
 
 class SetupNode(PlainCodeNode):
@@ -55,7 +56,7 @@ class GenericEndNode(ClusterEndNode):
 class TileIteratorBeginNode(ClusterBeginNode):
     def __init__(self, itorVar, itorType, **kwargs):
         super().__init__(nodeType="TileBeginNode")
-        self.name = "tile"
+        self.name = "tile_begin"
         self.itorVar = itorVar
         self.itorType = itorType
         self.itorOptions = kwargs
@@ -64,5 +65,51 @@ class TileIteratorBeginNode(ClusterBeginNode):
 class TileIteratorEndNode(ClusterEndNode):
     def __init__(self, beginNode=None):
         super().__init__(clusterBeginNode=beginNode, nodeType="TileEndNode")
-        self.name = "tile"
+        self.name = "tile_end"
+
+
+class OrchestrationBeginNode(AbstractNode):
+    def __init__(self, orchestrationEndNode=None, **kwargs):
+        kwargs.setdefault("nodeType", "OrchestrationBegin")
+        super().__init__(**kwargs)
+        self.name = "orch_begin"
+        self.endNode = list()
+        if orchestrationEndNode is not None:
+            self.appendEndNode(orchestrationEndNode)
+            orchestrationEndNode.setBeginNode(self)
+
+    def appendEndNode(self, orchestrationEndNode):
+        assert issubclass(type(orchestrationEndNode), OrchestrationEndNode), type(orchestrationEndNode)
+        self.endNode.append(orchestrationEndNode)
+
+class OrchestrationEndNode(AbstractNode):
+    def __init__(self, orchestrationBeginNode=None, **kwargs):
+        kwargs.setdefault("nodeType", "OrchestrationEnd")
+        super().__init__(**kwargs)
+        self.name = "orch_end"
+        if orchestrationBeginNode is not None:
+            self.setBeginNode(orchestrationBeginNode)
+            orchestrationBeginNode.appendEndNode(self)
+
+    def getBeginNode(self):
+        return self.beginNode
+
+    def setBeginNode(self, orchestrationBeginNode):
+        assert issubclass(type(orchestrationBeginNode), OrchestrationBeginNode), type(orchestrationBeginNode)
+        self.beginNode = orchestrationBeginNode
+
+    def hasBeginNode(self, orchestrationBeginNode):
+        assert issubclass(type(orchestrationBeginNode), OrchestrationBeginNode), type(orchestrationBeginNode)
+        return orchestrationBeginNode is self.beginNode
+
+
+
+class OrchestrationMarkerNode(AbstractNode):
+    """
+    This is a fake node for marking orchestration begin and end
+    """
+    def __init__(self, **kwargs):
+        kwargs.setdefault("nodeType", "OrchestrationMarker")
+        super().__init__(**kwargs)
+        self.name = "_marker_"
 
