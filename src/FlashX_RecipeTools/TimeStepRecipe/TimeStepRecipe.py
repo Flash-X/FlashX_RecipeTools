@@ -163,7 +163,6 @@ class TimeStepRecipe(ControlFlowGraph):
         import networkx as nx
         from copy import deepcopy
         from matplotlib import pyplot as plt
-        from matplotlib import transforms
 
         if fig is None:
             fig = plt.gcf()
