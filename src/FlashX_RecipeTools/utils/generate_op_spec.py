@@ -268,12 +268,12 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
                 if "source" in tokens and tokens["source"] in {"external", "scratch"}:
                     tokens["extents"] = exts
 
-                if "customdata" in tokens:
-                    print(tokens["customdata"])
+                if "origin" in tokens:
                     if tokens["source"] != "external":
                         msg = "Only external is allowed to have custom data."
                         raise ValueError(msg)
-                    tokens["customdata"] = json.loads(tokens["customdata"])
+                    tokens["application_specific"] = {"origin": tokens["origin"]}
+                    del tokens["origin"]
 
                 if in_common:
                     assert name not in common_defs, f"{name} defined twice."
