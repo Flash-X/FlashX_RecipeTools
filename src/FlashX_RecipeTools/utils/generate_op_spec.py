@@ -270,9 +270,13 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
 
                 if "origin" in tokens:
                     if tokens["source"] != "external":
-                        msg = "Only external is allowed to have custom data."
+                        msg = "Only external is allowed to have origin field."
                         raise ValueError(msg)
-                    tokens["application_specific"] = {"origin": tokens["origin"]}
+                    origin_source, origin_name = [w.strip() for w in tokens["origin"].split(':')]
+                    tokens["application_specific"] = {
+                        "origin": origin_source,
+                        "varname": origin_name,
+                    }
                     del tokens["origin"]
 
                 if in_common:

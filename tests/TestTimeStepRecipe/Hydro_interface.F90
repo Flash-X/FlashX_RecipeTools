@@ -236,11 +236,14 @@ Module Hydro_interface
    !!                   extents=[MILHOJA_BLOCK_GC, NUNK_VARS], &
    !!                   lbound=[tile_lbound, 1]
    !!   _stage :: source=external, &
-   !!             type=integer
+   !!             type=integer, &
+   !!             origin=local: stage
    !!   _dt :: source=external, &
-   !!          type=real
+   !!          type=real, &
+   !!          origin=input_arg: dt
    !!   _dtOld :: source=external, &
-   !!             type=real
+   !!             type=real, &
+   !!             origin=input_arg: dtOld
    !!   _xCenter_fake :: source=scratch, &
    !!                    type=real, &
    !!                    extents=[1], &
