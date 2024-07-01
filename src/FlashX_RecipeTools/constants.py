@@ -13,6 +13,8 @@
 # correctly.  The former seems simpler and is more explicit - let the consumer
 # of the content dictate the same language to everyone.  TBD.
 #
+from pathlib import Path
+FLASHX_RECIPETOOLS_ROOT = Path(__file__).parent.absolute()
 
 # TODO: Should there be a single global verbose default or should each set of
 #       CG-Kit tools define its own default value?

@@ -200,7 +200,7 @@ class Ctr_InitSubgraph(AbstractControllerGraph):
         ctrNode.attribute["args"] = ctrNode.getAllWorkArgs()
         ctrNode.attribute["opspecs"] = ctrNode.getAllOpSpecs()
         ctrNode.attribute["objdir"] = graph.objdir
-        ctrNode.attribute["tfname"] = ""     # NOTE: tfname will be determined later
+        ctrNode.attribute["tf_name"] = ""     # NOTE: tf_name will be determined later
         # set attributes of subgraph
         self._log.info("set subgraph level={level}, attributes={attribute}", level=graph.level, attribute=ctrNode.attribute)
         for key, val in ctrNode.attribute.items():
@@ -246,7 +246,7 @@ class Ctr_ParseTFGraph(AbstractControllerGraph):
                 # save taskfunction name to subsubgraph
                 # NOTE: this will be copied to the upper level subgraph attribute
                 #       in the "Ctr_InitSubRootNode" controller
-                graphAttribute["tfname"] = tf["name"]
+                graphAttribute["tf_name"] = tf["name"]
 
                 self.tfData.append(tf)
         return CtrRet.SUCCESS

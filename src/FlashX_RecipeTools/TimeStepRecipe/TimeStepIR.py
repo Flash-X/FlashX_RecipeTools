@@ -29,6 +29,7 @@ class TimeStepIR:
     def __init__(self):
         self._flowGraph = None
         self._tf_data_all = None
+        self._tf_spec_all = None
         self._objdir = None
         self._output_fnames = None
         self._milhoja_path = None
@@ -41,6 +42,10 @@ class TimeStepIR:
     @property
     def tf_data_all(self):
         return self._tf_data_all
+
+    @property
+    def tf_spec_all(self):
+        return self._tf_spec_all
 
     @property
     def output_fnames(self):
@@ -65,6 +70,13 @@ class TimeStepIR:
     @tf_data_all.setter
     def tf_data_all(self, value:list):
         self._tf_data_all = value
+
+    @tf_spec_all.setter
+    def tf_spec_all(self, value:dict):
+        if self._tf_spec_all is None:
+            self._tf_spec_all = value
+        else:
+            self._tf_spec_all.update(value)
 
     @output_fnames.setter
     def output_fnames(self, value:set):
@@ -280,10 +292,40 @@ class TimeStepIR:
                 tf_spec, destination, overwrite, indent, milhoja_logger
             )
 
+            # store tf_spec for later use
+            self.tf_spec_all = {tf_name:tf_spec}
+
 
     def _generate_TimeAdvance_code(self, dest:Path) -> None:
 
         flowGraph = self.flowGraph
 
-        flowGraph.parseCode()
+        from ._controller_ta import(
+            Ctr_TAParseGraph,
+            Ctr_TAParseNode,
+        )
+
+        ctrParseGraph = Ctr_TAParseGraph(tf_spec_all=self.tf_spec_all)
+        ctrParseNode = Ctr_TAParseNode(ctrParseGraph)
+
+        # NOTE: cgkit.ControlFlowGraph.parsecode is just a wrapper
+        #       for cgkit.ControlFlowGraph.traverseHierarchy, which isn't really necessary
+        #       for generating TimeAdvance. I'll use traverse
+        flowGraph.traverse(
+            controllerGraph=ctrParseGraph,
+            controllerNode=ctrParseNode,
+        )
+
+        stree = ctrParseGraph.getSourceTree()
+
+        timeadvance_path = self._objdir / "TimeAdvance.F90"
+        if timeadvance_path.exists():
+            if timeadvance_path.is_symlink():
+                logger.warning("TimeAdvance.F90 exists as a symlink. Unlinking...")
+                timeadvance_path.unlink()
+            else:
+                logger.warning("TimeAdvance.F90 already exists. Overwriting...")
+
+        with open("TimeAdvance.F90", 'w') as f:
+            f.write(stree.parse())
 

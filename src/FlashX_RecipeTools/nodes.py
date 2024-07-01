@@ -1,9 +1,12 @@
-from cgkit.cflow.node import (WorkNode,
-                              LeafNode,
-                              AbstractNode,
-                              ClusterBeginNode,
-                              ClusterEndNode,
-                              PlainCodeNode)
+from cgkit.cflow.node import (
+    RootNode,
+    WorkNode,
+    LeafNode,
+    AbstractNode,
+    ClusterBeginNode,
+    ClusterEndNode,
+    PlainCodeNode
+)
 
 
 def construct_begin_end_nodes(name, tpl, startswith="", endswith=""):

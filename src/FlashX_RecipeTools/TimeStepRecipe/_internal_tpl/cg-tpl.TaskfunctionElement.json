@@ -1,0 +1,22 @@
+{
+  "_connector:use_interface": {
+    "_code": [
+    ]
+  },
+  "_connector:var_definition": {
+    "_code": [
+    ]
+  },
+  "_connector:var_initialization": {
+    "_code": [
+    ]
+  },
+  "_connector:init_dataitem": {
+    "_code": [
+    ]
+  },
+  "_connector:delete_dataitem": {
+    "_code": [
+    ]
+  }
+}

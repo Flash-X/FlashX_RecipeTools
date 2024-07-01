@@ -28,6 +28,7 @@ from ._controller_ta import (
 from ..nodes import (
     WorkNode,
     LeafNode,
+    SetupNode,
     OrchestrationBeginNode,
     OrchestrationEndNode,
 )
@@ -42,6 +43,9 @@ from ..utils import (
     generate_op_spec,
 )
 
+from ..constants import FLASHX_RECIPETOOLS_ROOT
+
+INTERNAL_TEMPLATE_PATH = FLASHX_RECIPETOOLS_ROOT / "TimeStepRecipe" / "_internal_tpl"
 
 
 
@@ -115,6 +119,18 @@ class TimeStepRecipe(ControlFlowGraph):
         return handle
 
     @nodeappending
+    def add_tpl(self, tpl, after:int):
+        # adding a bare template node
+        tpl = Path(tpl)
+        name = tpl.name
+        node = SetupNode(name=name, tpl=tpl)
+        handle = self.linkNode(node)(after)
+
+        self._log.info("adding SetupNode({_name})", _name=name)
+
+        return handle
+
+    @nodeappending
     def begin_orchestration(self, after, **kwargs):
         node = OrchestrationBeginNode()
         handle = self.linkNode(node)(after)
@@ -134,6 +150,11 @@ class TimeStepRecipe(ControlFlowGraph):
         self._log.info("end orchestration of node {_node}", _node=begin_node)
 
         return handle
+
+    def add_fluxCorrection(self, after:int):
+        # TODO: this node has global MPI communications internally,
+        #       so should not be included inside of Orchestration_begin/end nodes
+        return self.add_tpl(INTERNAL_TEMPLATE_PATH / "cg-tpl.fluxCorrection.F90", after)
 
     def get_operation_spec(self, operation_name:str):
         assert operation_name in self.opspecs.keys(), (
