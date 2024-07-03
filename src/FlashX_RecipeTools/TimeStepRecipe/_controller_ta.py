@@ -65,6 +65,16 @@ def _format_MHarg_init_codeline(argname, MH_argname, argtype):
     A helper function to generate a code line for
     initialization of MH_* variables
     """
+    # handling cpu case    TODO: not sure why this is needed
+    if argtype == "milhoja::Real":
+        argtype = "real"
+    elif argtype == "integer":
+        argtype = "int"
+
+    if argtype not in ["real", "int"]:
+        msg = f"Unrecognized argument type, {argtype} for {argname}"
+        raise RuntimeError(msg)
+
     MH_type = "MILHOJA_" + argtype.upper()
     return f"{MH_argname} = {argtype}({argname}, kind={MH_type})"
 
@@ -73,6 +83,16 @@ def _format_MHarg_def_codeline(argname, MH_argname, argtype):
     A helper function to generate a code line for
     definition of MH_* variables
     """
+    # handling cpu case    TODO: not sure why this is needed
+    if argtype == "milhoja::Real":
+        argtype = "real"
+    elif argtype == "integer":
+        argtype = "int"
+
+    if argtype not in ["real", "int"]:
+        msg = f"Unrecognized argument type, {argtype} for {argname}"
+        raise RuntimeError(msg)
+
     MH_type = "MILHOJA_" + argtype.upper()
     TYPE_MAPPING = {
         "int": "integer",
@@ -299,21 +319,33 @@ class Ctr_TAParseNode(AbstractControllerNode):
         # TODO: this only works for "pushTile" style
         devices = nodeAttribute["devices"]
         if len(devices) == 1:
-            if devices[0].lower() == "gpu":
-                # GPU only action
-                tf_name = nodeAttribute["TFNodes"][0].name
-                tf_spec = self._tf_spec_all[tf_name]
-                self._log.info("Found single GPU Action, {_tf_name}", _tf_name = tf_name)
+            device = devices[0].lower()
+            # device must be cpu or gpu
+            if device not in ["cpu", "gpu"]:
+                msg = f"Unrecognized device={device} " + \
+                      f"for taskfunction={nodeAttribute['TFNodes'][0].name}"
+                raise RuntimeError(msg)
 
-                tree = srctree.load(INTERNAL_TEMPLATE_PATH / "cg-tpl.execute_Milhoja_pushTile_GpuOnly.json")
-                tree["_param:orchestration_count"] = str(orch_cnt)
-                tree["_param:gpu_taskfunction_name"] = str(tf_name)
-                tree["_param:dataitem_name"] = _determine_dataitem_name(tf_spec)
-                # ctrret, pathInfo = _insertConnectors(self._ctrParseGraph, tree)
-                pathInfo = self._stree.link(tree, linkPath=srctree.LINK_PATH_FROM_STACK)
-                # # update links
-                linkKeyList = srctree.search_links(tree)
-                self._stree.pushLink(linkKeyList)
+            tf_name = nodeAttribute["TFNodes"][0].name
+            tf_spec = self._tf_spec_all[tf_name]
+            self._log.info(
+                "Found single {_device} Action, {_tf_name}",
+                _device=device,
+                _tf_name = tf_name
+            )
+            # load single device template
+            tpl_name = f"cg-tpl.execute_Milhoja_pushTile_{device.capitalize()}Only.json"
+            tree = srctree.load(
+                INTERNAL_TEMPLATE_PATH / tpl_name
+            )
+            tree["_param:orchestration_count"] = str(orch_cnt)
+            tree["_param:taskfunction_name"] = str(tf_name)
+            tree["_param:dataitem_name"] = _determine_dataitem_name(tf_spec)
+            # link tree
+            pathInfo = self._stree.link(tree, linkPath=srctree.LINK_PATH_FROM_STACK)
+            # update links
+            linkKeyList = srctree.search_links(tree)
+            self._stree.pushLink(linkKeyList)
 
         elif len(devices) == 2:
             raise NotImplementedError("CPU and GPU orchestration is not implemented yet")
@@ -342,8 +374,16 @@ class Ctr_TAParseNode(AbstractControllerNode):
         tf_spec = self._tf_spec_all[tf_name]
         device = tf_spec.processor
 
+        # TODO: MH_args defs and inits should be in here
+        #       to avoid duplicated lines in generated codes
+        #       for multi-device cases
+
+        # TODO: self._generate_[CPU/GPU]_taskfunction_tpl functions
+        #       have too many duplicated codes
         if device == "gpu":
             tf_tpl = self._generate_GPU_taskfunction_tpl(tf_spec)
+        elif device == "cpu":
+            tf_tpl = self._generate_CPU_taskfunction_tpl(tf_spec)
         else:
             msg = f"{device} taskfunction generator is not implemented yet"
             raise NotImplementedError(msg)
@@ -418,6 +458,90 @@ class Ctr_TAParseNode(AbstractControllerNode):
         _use_indent = len(dataitem_use_line)
         code_use_interface.append(dataitem_use_line + f"{tf_spec.instantiate_packet_C_function}, &")
         code_use_interface.append(' '*_use_indent + f"{tf_spec.delete_packet_C_function}")
+
+        # update taskfunction template
+        tf_tpl.use_interface = code_use_interface
+        tf_tpl.init_dataitem = code_dataitem_init
+        tf_tpl.var_definition = code_var_defs
+        tf_tpl.var_initialization = code_var_init
+        tf_tpl.delete_dataitem = code_dataitem_del
+
+        return tf_tpl
+
+
+    def _generate_CPU_taskfunction_tpl(self, tf_spec):
+        # init a template for taskfunction
+        tf_tpl = TaskfunctionTemplateGenerator()
+
+        code_var_defs = []
+        code_var_init = []
+
+        # dealing with external variables
+        external_args = tf_spec.constructor_dummy_arguments
+        mh_external_vars = []
+        for arg in external_args:
+            argname, argtype = arg
+            arg_spec = tf_spec.argument_specification(argname)
+
+            origin_source = arg_spec["application_specific"]["origin"]
+            origin_varname = arg_spec["application_specific"]["varname"]
+            argname_short = argname.replace("external_", "")
+
+            mh_var = "MH_" + argname_short
+            mh_def_line = _format_MHarg_def_codeline(argname_short, mh_var, argtype)
+            mh_init_line = _format_MHarg_init_codeline(origin_varname, mh_var, argtype)
+
+            # update variable in the graph controller
+            # it will check the variable duplications
+            self._ctrParseGraph.push_variable(mh_def_line)
+
+            mh_external_vars.append(mh_var)
+            code_var_defs.append(mh_def_line)
+            code_var_init.append(mh_init_line)
+
+        # construct dataitem def
+        dataitem_name = _determine_dataitem_name(tf_spec)
+        dataitem_def_line = "type(c_ptr) :: " + dataitem_name
+        # update dataitem variable
+        self._ctrParseGraph.push_variable(dataitem_def_line)
+        code_var_defs.append(dataitem_def_line)
+
+        # construct dataitem init
+        code_dataitem_init = []
+        code_dataitem_init.append(f"MH_ierr = {tf_spec.acquire_scratch_C_function}()")
+        code_dataitem_init.append(_milhoja_check_internal_error())
+        code_dataitem_init.append("")
+
+        code_dataitem_init.append(f"{dataitem_name} = c_null_ptr")
+        code_dataitem_init.append(f"MH_ierr = {tf_spec.instantiate_packet_C_function}( &")
+        for var in mh_external_vars:
+            line = ' '*3 + f"{var}, &"
+            code_dataitem_init.append(line)
+        code_dataitem_init.append(' '*3 + f"{dataitem_name} &")
+        code_dataitem_init.append(')')
+        # check milhoja internal error
+        code_dataitem_init.append(_milhoja_check_internal_error())
+
+        # construct dataitem delete
+        code_dataitem_del = []
+        code_dataitem_del.append(f"MH_ierr = {tf_spec.delete_packet_C_function}( &")
+        code_dataitem_del.append(' '*3 + f"{dataitem_name} &")
+        code_dataitem_del.append(')')
+        code_dataitem_del.append(_milhoja_check_internal_error())
+        code_dataitem_del.append(f"{dataitem_name} = c_null_ptr")
+        code_dataitem_del.append("")
+        code_dataitem_del.append(f"MH_ierr = {tf_spec.release_scratch_C_function}()")
+        code_dataitem_del.append(_milhoja_check_internal_error())
+
+        # construct use interface
+        code_use_interface = []
+        code_use_interface.append(f"use {tf_spec.fortran_module_name}, ONLY: {tf_spec.cpp2c_layer_name}")
+        dataitem_use_line = f"use {tf_spec.data_item_module_name}, ONLY: "
+        _use_indent = len(dataitem_use_line)
+        code_use_interface.append(dataitem_use_line + f"{tf_spec.instantiate_packet_C_function}, &")
+        code_use_interface.append(' '*_use_indent + f"{tf_spec.delete_packet_C_function}, &")
+        code_use_interface.append(' '*_use_indent + f"{tf_spec.acquire_scratch_C_function}, &")
+        code_use_interface.append(' '*_use_indent + f"{tf_spec.release_scratch_C_function}")
 
         # update taskfunction template
         tf_tpl.use_interface = code_use_interface

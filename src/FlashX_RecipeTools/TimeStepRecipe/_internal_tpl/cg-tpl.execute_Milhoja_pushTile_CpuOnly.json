@@ -4,10 +4,9 @@
   "_param:dataitem_name": "",
   "_connector:use_interface": {
     "_code": [
-      "use Orchestration_interface, ONLY: Orchestration_setupPipelineForGpuTasks, &",
-      "                                   Orchestration_pushTileToGpuPipeline",
-      "use Orchestration_data, ONLY: or_nThreads_${orchestration_count}, &",
-      "                              or_nTilesPerPacket_${orchestration_count}"
+      "use Orchestration_interface, ONLY: Orchestration_setupPipelineForCpuTasks, &",
+      "                                   Orchestration_pushTileToCpuPipeline",
+      "use Orchestration_data, ONLY: or_nThreads_${orchestration_count}"
     ]
   },
   "_connector:execute": {
@@ -17,18 +16,16 @@
       },
       "",
       "call Timers_start(\"Milhoja::${taskfunction_name}\")",
-      "call Orchestration_setupPipelineForGpuTasks( &",
+      "call Orchestration_setupPipelineForCpuTasks( &",
       "   MH_taskFunction=${taskfunction_name}_Cpp2C, &",
-      "   nThreads=or_nThreads_${orchestration_count}, &",
-      "   nTilesPerPacket=or_nTilesPerPacket_${orchestration_count}, &",
-      "   MH_packet_Cptr=${dataitem_name} &",
+      "   nThreads=or_nThreads_${orchestration_count} &",
       ")",
       "call Grid_getTileIterator(itor, nodetype=LEAF)",
       "do while(itor%isValid())",
       "   call itor%currentTile(tileDesc)",
       "   call tileDesc%fillTileCInfo(cInfo)",
       "",
-      "   call Orchestration_pushTileToGpuPipeline( &",
+      "   call Orchestration_pushTileToCpuPipeline( &",
       "      prototype_Cptr=${dataitem_name}, &",
       "      nThreads=or_nThreads_${orchestration_count}, &",
       "      tileCInfo=cInfo &",
@@ -38,18 +35,12 @@
       "end do",
       "call Grid_releaseTileIterator(itor)",
       "!! TODO: tearDown subroutine should take no arguments",
-      "call Orchestration_teardownPipeline( &",
-      "   nThreads=or_nThreads_${orchestration_count}, &",
-      "   nTilesPerPacket=or_nTilesPerPacket_${orchestration_count} &",
-      ")",
+      "call Orchestration_teardownPipeline(nThreads=or_nThreads_${orchestration_count})",
       "call Timers_stop(\"Milhoja::${taskfunction_name}\")",
       "",
       {
         "_link:delete_dataitem": []
-      },
-      "",
-      "call milhoja_runtime_reset(MH_ierr)",
-      "call Orchestration_checkInternalError(\"TimeAdvance\", MH_ierr)"
+      }
     ]
   },
   "_param:__type__": ".f90"
