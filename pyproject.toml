@@ -14,8 +14,9 @@ classifiers = [
 requires-python = ">=3.8"
 dependencies = [
     "loguru",
+    "mako",
     "code-generation-toolkit",
-    """milhoja@git+ssh://git@git.cels.anl.gov/joneal/OrchestrationRuntime.git@5751338b383576604b79800187a4c72f37cde8ce#subdirectory=tools/milhoja_pypkg""",
+    """milhoja@git+ssh://git@github.com/Flash-X/Milhoja.git@2ac942455391df1fd50b3d42add8918ae0ca334e#subdirectory=tools/milhoja_pypkg""",
 ]
 dynamic = ["version"]
 
