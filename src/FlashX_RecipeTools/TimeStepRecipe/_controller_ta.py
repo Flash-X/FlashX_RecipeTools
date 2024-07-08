@@ -157,7 +157,7 @@ class Ctr_TAParseGraph(AbstractControllerGraph):
             verbose=verbose,
             verbosePre="!",
             verbosePost="",
-            template_type="mako",     # TODO: add mako for dependency
+            template_type="mako",
             debug=False,
         )
         self._callReturnStack = list()
