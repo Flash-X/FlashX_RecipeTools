@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import json
+import subprocess
 
 import milhoja
 
@@ -114,6 +115,11 @@ class TimeStepIR:
         self._generate_milhoja_codes(dest)
         # generate TimeAdvance code
         self._generate_TimeAdvance_code(dest)
+
+        # lastly, re-calculate dependencies in the objdir
+        self._generate_makefile_depend()
+
+        # ready to compile
 
 
     def _determine_milhoja_code_fnames(self) -> None:
@@ -328,4 +334,25 @@ class TimeStepIR:
 
         with open("TimeAdvance.F90", 'w') as f:
             f.write(stree.parse())
+
+
+    def _generate_makefile_depend(self) -> None:
+
+        logger.info("Generating Makefile.Depend")
+
+        flashx_makefile_path = self.objdir / "Makefile"
+        if not flashx_makefile_path.exists():
+            raise FileNotFoundError(f"Makefile does not exist in directory: {self.objdir}")
+
+        try:
+            subprocess.run(
+                ["make", "-C", str(self.objdir), "Makefile.Depend"],
+                check=True,
+                stdout=subprocess.DEVNULL,  # suppress stdout
+                stderr=subprocess.PIPE      # capture stderr
+            )
+        except subprocess.CalledProcessError as e:
+            msg = f"An error occurred while making Makefile.Depend: {e.stderr.decode()}"
+            raise RuntimeError(msg)
+
 
