@@ -37,7 +37,7 @@
       "   call itor%next()",
       "end do",
       "call Grid_releaseTileIterator(itor)",
-      "!! TODO: tearDown subroutine should take no arguments",
+      "",
       "call Orchestration_teardownPipeline( &",
       "   nThreads=or_nThreads_${orchestration_count}, &",
       "   nTilesPerPacket=or_nTilesPerPacket_${orchestration_count} &",
