@@ -166,7 +166,7 @@ class TimeStepIR:
 
     def _generate_makefile(self) -> None:
 
-        makefile_path = self._objdir / "Makefile.Milhoja"
+        makefile_path = self.objdir / "Makefile.Milhoja"
         output_files = self.output_fnames
         objfiles = []
         for filename in output_files:
@@ -324,7 +324,7 @@ class TimeStepIR:
 
         stree = ctrParseGraph.getSourceTree()
 
-        timeadvance_path = self._objdir / "TimeAdvance.F90"
+        timeadvance_path = self.objdir / "TimeAdvance.F90"
         if timeadvance_path.exists():
             if timeadvance_path.is_symlink():
                 logger.warning("TimeAdvance.F90 exists as a symlink. Unlinking...")
