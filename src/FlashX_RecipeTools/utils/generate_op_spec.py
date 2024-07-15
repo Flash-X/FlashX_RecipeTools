@@ -12,8 +12,18 @@ from copy import deepcopy
 from pathlib import Path
 from warnings import warn
 
-# from . import milhoja_block_constants as mbc
-import milhoja_block_constants as mbc
+from . import milhoja_block_constants as mbc
+
+try:
+    import fparser.common.readfortran as readfortran
+    from fparser.two.parser import ParserFactory
+    from fparser.common.readfortran import FortranStringReader
+    from fparser.two.Fortran2003 import Type_Declaration_Stmt
+    from fparser.two.Fortran2003 import Subroutine_Stmt
+    from fparser.common.sourceinfo import FortranFormat
+except ModuleNotFoundError:
+    msg = """JSON Generator needs fparser to pull information from subrotuines."""
+    print(msg)
 
 
 def evaluate_simple_expression(line: str) -> int:
@@ -286,12 +296,15 @@ def __process_common_block(lines, json) -> dict:
     return common_definitions
 
 
-def __process_subroutine_block(lines, common_definitions: dict, interface_file) -> dict:
+def __pull_type_data(line: readfortran.Line, subroutine_args, common_args):
+    ...
+
+
+def __process_subroutine_block(lines: list[str], common_definitions: dict, interface_file) -> dict:
     lines = lines[1:-1]  # remove begin & end directives.
     argument_definitions = {}
-    arg_list = []
-    name = ""
-    for line in lines:
+    subroutine_lines = ""
+    for idx,line in enumerate(lines):
         if line.startswith(mbc.DIRECTIVE_LINE):  # parse any annotation lines from the user.
             var_name,tokens = __process_annotation_line(line)
             # need to determine the function we are in
@@ -308,20 +321,53 @@ def __process_subroutine_block(lines, common_definitions: dict, interface_file) 
             argument_definitions[var_name] = tokens
 
         elif line.startswith('subroutine'):  # parse the subroutine prototype definition
-            routine_info_regex = r"\w+\(.*\)"
-            info = re.findall(routine_info_regex, line)[0]
-            arg_start = info.find("(")
-            name = info[:arg_start]
-            arg_list = [arg.strip() for arg in info[arg_start+1:-1].split(',')]
+            subroutine_lines = '\n'.join(lines[idx:])
 
-            if set(arg_list) != set(argument_definitions.keys()):
-                raise Exception(
-                    "Dummy argument definitions missing in milhoja block.\n"
-                    f"Args: {args}\nDefs:, {list(argument_definitions.keys())}"
-                )
+    global name
+    global arg_list
+    def parse_tree(child, subroutine_defs, common_defs):
+        global name
+        global arg_list
+        if child:
+            for sub in child.content:
+                if isinstance(sub, Subroutine_Stmt):
+                    name = str(sub.get_name())
+                    arg_list = str(sub.items[2]).split(', ')
 
-        else:  # gather any extra data from dummy argument definitions.
-            ...
+                elif isinstance(sub, Type_Declaration_Stmt):
+                    dtype = str(sub.items[0]).lower()
+                    name_list = str(sub.items[2]).split(', ')
+                    name_list = [name[:name.find('(')] if '(' in name else name for name in name_list]
+
+                    for name in name_list:
+                        data = subroutine_defs.get(name, None)
+                        if not data:
+                            raise RuntimeError(f"Annotation variable & subroutine dummy arg mismatch ({name}).")
+
+                        if 'name' in data:
+                            data = common_definitions[data['name']]
+                                
+                        if data['source'] == 'external' or data['source'] == 'scratch':
+                            data['type'] = dtype
+                        
+
+                if hasattr(sub, "content"):
+                    parse_tree(sub, subroutine_defs, common_def)
+
+    factory = ParserFactory().create(std='f2008')
+    string_reader = FortranStringReader(subroutine_lines)
+    string_reader.set_format(FortranFormat(True, True))
+    tree = factory(string_reader)
+    if tree:
+        for child in tree.content:
+            parse_tree(child, argument_definitions, common_definitions)
+
+    # make sure the argument lists match.
+    if set(arg_list) != set(argument_definitions.keys()):
+        raise Exception(
+            "Dummy argument definitions missing in milhoja block.\n"
+            f"Args: {arg_list}\nDefs:, {list(argument_definitions.keys())}"
+        )
 
     subroutine_data = {
         name: {
@@ -439,7 +485,6 @@ def __process_interface_file(name: str, file: Path, interface_name, debug: bool)
 
     opspec = __create_op_spec_json(lines, interface_name, name, debug)
     return opspec
-    return {}
 
 
 def __dump_to_json(dictionary: dict, file_path: Path):
