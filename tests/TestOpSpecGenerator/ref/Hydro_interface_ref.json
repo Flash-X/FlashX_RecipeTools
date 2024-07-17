@@ -8,11 +8,7 @@
   "external": {
     "_stage": {
       "type": "integer",
-      "extents": "()",
-      "customdata": {
-        "custom": "generator",
-        "info": "here"
-      }
+      "extents": "()"
     },
     "_dt": {
       "type": "real",
