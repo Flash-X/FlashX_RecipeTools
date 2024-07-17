@@ -323,26 +323,26 @@ def __process_subroutine_block(lines: list[str], common_definitions: dict, inter
         elif line.startswith('subroutine'):  # parse the subroutine prototype definition
             subroutine_lines = '\n'.join(lines[idx:])
 
-    global name
+    global subr_name
     global arg_list
     def parse_tree(child, subroutine_defs, common_defs):
-        global name
+        global subr_name
         global arg_list
         if child:
             for sub in child.content:
                 if isinstance(sub, Subroutine_Stmt):
-                    name = str(sub.get_name())
+                    subr_name = str(sub.get_name())
                     arg_list = str(sub.items[2]).split(', ')
 
                 elif isinstance(sub, Type_Declaration_Stmt):
                     dtype = str(sub.items[0]).lower()
                     name_list = str(sub.items[2]).split(', ')
-                    name_list = [name[:name.find('(')] if '(' in name else name for name in name_list]
+                    name_list = [n[:n.find('(')] if '(' in n else n for n in name_list]
 
-                    for name in name_list:
-                        data = subroutine_defs.get(name, None)
+                    for n in name_list:
+                        data = subroutine_defs.get(n, None)
                         if not data:
-                            raise RuntimeError(f"Annotation variable & subroutine dummy arg mismatch ({name}).")
+                            raise RuntimeError(f"Annotation variable & subroutine dummy arg mismatch ({n}).")
 
                         if 'name' in data:
                             data = common_definitions[data['name']]
@@ -370,7 +370,7 @@ def __process_subroutine_block(lines: list[str], common_definitions: dict, inter
         )
 
     subroutine_data = {
-        name: {
+        subr_name: {
             "interface_file": interface_file,
             "argument_list": arg_list,
             "argument_specifications": argument_definitions
