@@ -242,9 +242,12 @@ Module Hydro_interface
    !!   _hy_tmpState :: source=scratch, &
    !!                   extents=[MILHOJA_BLOCK_GC, NUNK_VARS], &
    !!                   lbound=[tile_lbound, 1]
-   !!   _stage :: source=external
-   !!   _dt :: source=external
-   !!   _dtOld :: source=external
+   !!   _stage :: source=external, &
+   !!             origin=local:stage
+   !!   _dt :: source=external, &
+   !!          origin=input_arg:dt
+   !!   _dtOld :: source=external, &
+   !!             origin=input_arg:dtOld
    !!   _xCenter_fake :: source=scratch, &
    !!                    extents=[1], &
    !!                    lbound=[1]

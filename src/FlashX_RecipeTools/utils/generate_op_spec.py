@@ -296,10 +296,6 @@ def __process_common_block(lines, json) -> dict:
     return common_definitions
 
 
-def __pull_type_data(line: readfortran.Line, subroutine_args, common_args):
-    ...
-
-
 def __process_subroutine_block(lines: list[str], common_definitions: dict, interface_file) -> dict:
     lines = lines[1:-1]  # remove begin & end directives.
     argument_definitions = {}
@@ -346,10 +342,9 @@ def __process_subroutine_block(lines: list[str], common_definitions: dict, inter
 
                         if 'name' in data:
                             data = common_definitions[data['name']]
-                                
+
                         if data['source'] == 'external' or data['source'] == 'scratch':
                             data['type'] = dtype
-                        
 
                 if hasattr(sub, "content"):
                     parse_tree(sub, subroutine_defs, common_def)

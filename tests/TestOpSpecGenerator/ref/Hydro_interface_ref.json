@@ -8,14 +8,26 @@
   "external": {
     "_stage": {
       "type": "integer",
+      "application_specific": {
+          "origin": "local",
+          "varname": "stage"
+      },
       "extents": "()"
     },
     "_dt": {
       "type": "real",
+      "application_specific": {
+          "origin": "input_arg",
+          "varname": "dt"
+      },
       "extents": "()"
     },
     "_dtOld": {
       "type": "real",
+      "application_specific": {
+          "origin": "input_arg",
+          "varname": "dtOld"
+      },
       "extents": "()"
     }
   },
