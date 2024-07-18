@@ -11,18 +11,19 @@ from loguru import logger
 from copy import deepcopy
 from pathlib import Path
 from warnings import warn
+from typing import Tuple
 
 from . import milhoja_block_constants as mbc
 
 try:
-    import fparser.common.readfortran as readfortran
     from fparser.two.parser import ParserFactory
     from fparser.common.readfortran import FortranStringReader
     from fparser.two.Fortran2003 import Type_Declaration_Stmt
     from fparser.two.Fortran2003 import Subroutine_Stmt
     from fparser.common.sourceinfo import FortranFormat
 except ModuleNotFoundError:
-    msg = """JSON Generator needs fparser to pull information from subrotuines."""
+    msg = "JSON Generator needs fparser to pull information from subrotuines." \
+          "Please install fparser via pip install --upgrade fparser"
     print(msg)
 
 
@@ -152,18 +153,28 @@ def format_rw_list(line: str) -> list:
     return sorted(rw_range)
 
 
-def __format_structure_index(line) -> list:
+def __format_structure_index(line: str) -> list:
     """
-    Formats the structure index argument for use by the TaskFunctionAssembler
+    Formats the structure index argument for use by the TaskFunctionAssembler.
+
+    :param str line: The line to format.
+    :return: The formatted structure index as a list.
     """
     line = line[1:-1]
     tokens = [token.strip() for token in line.split(',')]
     return [tokens[0].upper(), int(tokens[1])]
 
 
-def __split_non_nested(string: str, delim, nest_begin, nest_end, max_splits = -1) -> list:
+def __split_non_nested(string: str, delim: str, nest_begin: list, nest_end: list, max_splits = -1) -> list:
     """
     Splits a string by commas that are not contained within parenthesis.
+
+    :param str string: The string to split.
+    :param str delim: The delimiter to split by.
+    :param list nest_begin: The list of chars that begin a nest.
+    :param list nest_end: The list of chars that end a nest.
+    :param int max_splits: The number of splits for a string. Default splits entire string.
+    :return: The split string.
     """
     last_idx = 0
     segments = []
@@ -194,10 +205,13 @@ def __split_non_nested(string: str, delim, nest_begin, nest_end, max_splits = -1
     return segments
 
 
-def __get_directive_tokens(line, debug):
+def __get_directive_tokens(line: str, debug: bool) -> Tuple[str, dict]:
     """
-    Parses a milhoja directive line and returns the name
-    and all associated data with a name.
+    Parses a milhoja directive line and returns the name and all associated data with a name.
+
+    :param str line: The line to parse.
+    :param bool debug: Prints debug information if enabled.
+    :return: A tuple containing the name and tokens.
     """
     token_dict = {}
     tokens = line[len(mbc.DIRECTIVE_LINE):].split("::")
@@ -230,7 +244,13 @@ def __get_directive_tokens(line, debug):
     return name, token_dict
 
 
-def __build_section_list(lines) -> list:
+def __build_section_list(lines: list) -> list:
+    """
+    Builds a list containing all lines in each section.
+
+    :param list lines: Every milhoja directive line.
+    :return: The list containing all sections
+    """
     all_blocks = []
     for idx,line in enumerate(lines):
         if "".join(line.split()).startswith(mbc.DIRECTIVE_LINE + mbc.MILHOJA + mbc.BEGIN):
@@ -246,7 +266,13 @@ def __build_section_list(lines) -> list:
     return all_blocks
 
 
-def __process_annotation_line(line):
+def __process_annotation_line(line: str) -> Tuple[str, dict]:
+    """
+    Processes a milhoja annotation line.
+
+    :param str line: The line to process.
+    :return: The name of the variable in the line & all associated tokens.
+    """
     name,tokens = __get_directive_tokens(line, False)
     for rw_key in mbc.RW_SYMBOLS:
         if rw_key in tokens:
@@ -276,7 +302,14 @@ def __process_annotation_line(line):
     return name,tokens
 
 
-def __process_common_block(lines, json) -> dict:
+def __process_common_block(lines: list, json: dict) -> dict:
+    """
+    Processes all lines in a common block.
+
+    :param list lines: All lines in the common block.
+    :param dict json: The op spec json to modify.
+    :return: A dict of common definitions.
+    """
     common_definitions = {}
     lines = lines[1:-1]
     for line in lines:
@@ -296,7 +329,15 @@ def __process_common_block(lines, json) -> dict:
     return common_definitions
 
 
-def __process_subroutine_block(lines: list[str], common_definitions: dict, interface_file) -> dict:
+def __process_subroutine_block(lines: list[str], common_definitions: dict, interface_file: str) -> dict:
+    """
+    Processes a subroutine block and returns all argument definitions.
+
+    :param list[str] lines: A list of all lines inside a subroutine block.
+    :param dict common_definitions: All common_definitions from the common block.
+    :param str interface_file: The name of the interface file.
+    :return: A dict containing all variable definitions for the subroutine.
+    """
     lines = lines[1:-1]  # remove begin & end directives.
     argument_definitions = {}
     subroutine_lines = ""
@@ -349,6 +390,7 @@ def __process_subroutine_block(lines: list[str], common_definitions: dict, inter
                 if hasattr(sub, "content"):
                     parse_tree(sub, subroutine_defs, common_def)
 
+    # parse the fortran lines using fparser
     factory = ParserFactory().create(std='f2008')
     string_reader = FortranStringReader(subroutine_lines)
     string_reader.set_format(FortranFormat(True, True))
@@ -374,8 +416,16 @@ def __process_subroutine_block(lines: list[str], common_definitions: dict, inter
     return subroutine_data
 
 
-def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
-    """Create the operation specification json from the list of milhoja directive lines."""
+def __create_op_spec_json(lines: list, intf_name: str, op_name: str, debug: bool) -> dict:
+    """
+    Create the operation specification json from the list of milhoja directive lines.
+
+    :param list lines: All milhoja directive lines.
+    :param str intf_name: The name of the interface file.
+    :param str op_name: The operation spec name.
+    :param bool debug: Print debug information if true.
+    :return: Returns the finalized json.
+    """
     sbr_defs = {}
     js = deepcopy(mbc.OP_SPEC_TEMPLATE)
     js["name"] = op_name
@@ -416,11 +466,16 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
     return js
 
 
-def __get_all_interface_lines(fptr, debug) -> list:
+def __get_all_interface_lines(fptr, debug: bool) -> list:
+    """
+    Get all interface lines that uses milhoja directives.
+
+    :param fptr: The file pointer pointing to the interface file.
+    :param bool debug: If enabled, prints debug information.
+    """
     milhoja_block_stack = []
     lines = []
     full_line = ""
-    # todo:: call strip() less times
 
     # for each line in the file...
     for line in fptr:
