@@ -3,7 +3,6 @@
     "_code": [
       "!Begin loop over stages",
       "do stage = 1, last_stage",
-      "   rk_coeffs = hy_coeffArray(stage,:)",
       {
         "_param:__indent__": 1,
         "_link:execute": []
