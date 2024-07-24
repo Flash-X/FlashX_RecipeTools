@@ -12,19 +12,13 @@ from copy import deepcopy
 from pathlib import Path
 from warnings import warn
 from typing import Tuple
+from fparser.two.parser import ParserFactory
+from fparser.common.readfortran import FortranStringReader
+from fparser.two.Fortran2003 import Type_Declaration_Stmt
+from fparser.two.Fortran2003 import Subroutine_Stmt
+from fparser.common.sourceinfo import FortranFormat
 
 from . import milhoja_block_constants as mbc
-
-try:
-    from fparser.two.parser import ParserFactory
-    from fparser.common.readfortran import FortranStringReader
-    from fparser.two.Fortran2003 import Type_Declaration_Stmt
-    from fparser.two.Fortran2003 import Subroutine_Stmt
-    from fparser.common.sourceinfo import FortranFormat
-except ModuleNotFoundError:
-    msg = "JSON Generator needs fparser to pull information from subrotuines." \
-          "Please install fparser via pip install --upgrade fparser"
-    print(msg)
 
 
 def evaluate_simple_expression(line: str) -> int:
@@ -34,7 +28,6 @@ def evaluate_simple_expression(line: str) -> int:
 
     Can be optimized to reduce -- to + when tokens are parsed
     """
-    # print("Line:", line)
     # get all tokens in expression
     tokens = re.findall(r'\*\*|[\+\-\*\\\(\)]|\d+', line)
 
@@ -53,7 +46,6 @@ def evaluate_simple_expression(line: str) -> int:
     out_queue = []
 
     for token in tokens:
-        # print("Token", token)
         if token.isdigit():
             out_queue.append(int(token))
 
@@ -91,7 +83,6 @@ def evaluate_simple_expression(line: str) -> int:
         i += 1
 
     running = []
-    # print(out_queue)
     # next, evaluate the expression held by out_queue.
     for token in out_queue:
         if token in ops:
@@ -196,12 +187,14 @@ def __split_non_nested(string: str, delim: str, nest_begin: list, nest_end: list
             last_idx = idx + 1  # pass the comma
             if last_idx >= len(string) or max_splits > -1 and max_splits < idx:
                 break
+
     # return whole string if could not be split
     if not segments:
         segments.append(string)
     else:
         # append last segment
         segments.append(string[last_idx:])
+
     return segments
 
 
@@ -265,18 +258,18 @@ def __build_section_list(lines: list) -> list:
 
     return all_blocks
 
-
-def __process_annotation_line(line: str) -> Tuple[str, dict]:
+def __process_annotation_line(line: str, debug: bool) -> Tuple[str, dict]:
     """
     Processes a milhoja annotation line.
 
     :param str line: The line to process.
     :return: The name of the variable in the line & all associated tokens.
     """
-    name,tokens = __get_directive_tokens(line, False)
+    name,tokens = __get_directive_tokens(line, debug)
     for rw_key in mbc.RW_SYMBOLS:
-        if rw_key in tokens:
-            tokens[rw_key] = format_rw_list(tokens[rw_key])
+        key = rw_key.lower()
+        if key in tokens:
+            tokens[key] = format_rw_list(tokens[key])
 
     # Process extents and update the tokens dictionary.
     exts = tokens.get("extents", "()")
@@ -302,7 +295,7 @@ def __process_annotation_line(line: str) -> Tuple[str, dict]:
     return name,tokens
 
 
-def __process_common_block(lines: list, json: dict) -> dict:
+def __process_common_block(lines: list, json: dict, debug: bool) -> dict:
     """
     Processes all lines in a common block.
 
@@ -313,7 +306,7 @@ def __process_common_block(lines: list, json: dict) -> dict:
     common_definitions = {}
     lines = lines[1:-1]
     for line in lines:
-        name,tokens = __process_annotation_line(line)
+        name,tokens = __process_annotation_line(line.lower(), debug)
         assert name not in common_definitions, f"{name} defined twice."
         common_definitions[name] = tokens
 
@@ -329,7 +322,7 @@ def __process_common_block(lines: list, json: dict) -> dict:
     return common_definitions
 
 
-def __process_subroutine_block(lines: list[str], common_definitions: dict, interface_file: str) -> dict:
+def __process_subroutine_block(lines: list[str], common_definitions: dict, interface_file: str, debug: bool) -> dict:
     """
     Processes a subroutine block and returns all argument definitions.
 
@@ -343,7 +336,8 @@ def __process_subroutine_block(lines: list[str], common_definitions: dict, inter
     subroutine_lines = ""
     for idx,line in enumerate(lines):
         if line.startswith(mbc.DIRECTIVE_LINE):  # parse any annotation lines from the user.
-            var_name,tokens = __process_annotation_line(line)
+            var_name,tokens = __process_annotation_line(line.lower(), debug)
+            var_name = var_name.lower()
             # need to determine the function we are in
             assert var_name not in argument_definitions, f"{var_name} defined twice."
             if mbc.COMMON in tokens:
@@ -360,56 +354,60 @@ def __process_subroutine_block(lines: list[str], common_definitions: dict, inter
         elif line.startswith('subroutine'):  # parse the subroutine prototype definition
             subroutine_lines = '\n'.join(lines[idx:])
 
-    global subr_name
-    global arg_list
-    def parse_tree(child, subroutine_defs, common_defs):
-        global subr_name
-        global arg_list
+    def parse_tree(child, subroutine_defs, common_defs, sub_data={}):
+        # use a dictionary to save any data from the recursive function to avoid
+        # complex return cases, due to the need to parse the entire tree.
         if child:
             for sub in child.content:
                 if isinstance(sub, Subroutine_Stmt):
                     subr_name = str(sub.get_name())
                     arg_list = str(sub.items[2]).split(', ')
+                    sub_data["name"] = subr_name
+                    sub_data["arg_list"] = [arg.lower() for arg in arg_list]
 
                 elif isinstance(sub, Type_Declaration_Stmt):
                     dtype = str(sub.items[0]).lower()
                     name_list = str(sub.items[2]).split(', ')
-                    name_list = [n[:n.find('(')] if '(' in n else n for n in name_list]
+                    name_list = [n[:n.find('(')].lower() if '(' in n else n.lower() for n in name_list]
 
                     for n in name_list:
-                        data = subroutine_defs.get(n, None)
+                        data = subroutine_defs.get(n.lower(), None)
                         if not data:
                             raise RuntimeError(f"Annotation variable & subroutine dummy arg mismatch ({n}).")
 
                         if 'name' in data:
-                            data = common_definitions[data['name']]
+                            data = common_defs[data['name']]
 
                         if data['source'] == 'external' or data['source'] == 'scratch':
                             data['type'] = dtype
 
                 if hasattr(sub, "content"):
-                    parse_tree(sub, subroutine_defs, common_def)
+                    parse_tree(sub, subroutine_defs, common_definitions, sub_data)
+
 
     # parse the fortran lines using fparser
-    factory = ParserFactory().create(std='f2008')
+    factory = ParserFactory().create(std='f2003')
     string_reader = FortranStringReader(subroutine_lines)
     string_reader.set_format(FortranFormat(True, True))
     tree = factory(string_reader)
+    sub_data = {
+        "name": "",
+        "arg_list": []
+    }
     if tree:
-        for child in tree.content:
-            parse_tree(child, argument_definitions, common_definitions)
+        parse_tree(tree, argument_definitions, common_definitions, sub_data)
 
     # make sure the argument lists match.
-    if set(arg_list) != set(argument_definitions.keys()):
+    if set(sub_data["arg_list"]) != set(argument_definitions.keys()):
         raise Exception(
             "Dummy argument definitions missing in milhoja block.\n"
-            f"Args: {arg_list}\nDefs:, {list(argument_definitions.keys())}"
+            f"Args: {sub_data['arg_list']}\nDefs:, {list(argument_definitions.keys())}"
         )
 
     subroutine_data = {
-        subr_name: {
+        sub_data["name"]: {
             "interface_file": interface_file,
-            "argument_list": arg_list,
+            "argument_list": sub_data["arg_list"],
             "argument_specifications": argument_definitions
         }
     }
@@ -433,9 +431,9 @@ def __create_op_spec_json(lines: list, intf_name: str, op_name: str, debug: bool
     sections = __build_section_list(lines)
     # here we assume that the first section found in the list of sections
     # is always common
-    commons = __process_common_block(sections[0], js)
+    commons = __process_common_block(sections[0], js, debug)
     for section in sections[1:]:
-        routine_info = __process_subroutine_block(section, commons, intf_name)
+        routine_info = __process_subroutine_block(section, commons, intf_name, debug)
         sbr_defs.update(routine_info)
 
     # move any scratch or external data in a subroutine to the outer 
