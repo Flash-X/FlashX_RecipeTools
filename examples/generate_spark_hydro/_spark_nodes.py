@@ -16,78 +16,82 @@ class spark_nodes:
         # setups (plain code)
         self.saveFluxBuf = WorkNode(
             name="hy_rk_saveFluxBuf",
-            args=["hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ",
-                  "&\n   hy_flx", "hy_fly", "hy_flz",
-                  "&\n   hy_weights", "stage", "hy_fluxCorrect",
-                  "&\n   blkLimits",
-                  "&\n   hy_fareaX", "hy_fareaY", "hy_fareaZ"]
+            args=[
+                "stage", "hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ",
+                "&\n   hy_flx", "hy_fly", "hy_flz",
+                "&\n   hy_fareaX", "hy_fareaY", "hy_fareaZ",
+                "&\n   blkLimits", "lo", "loGC",
+            ]
         )
 
         # work nodes
         self.fillGC = WorkNode(
             name="Grid_fillGuardCells",
-            args=["CENTER", "ALLDIR", "doEos=.false.", "maskSize=NUNK_VARS", "mask=hy_gcMask"],
+            args=[
+                "CENTER", "ALLDIR", "doEos=.true.", "eosMode=hy_eosModeGc",
+                "&\n   maskSize=NUNK_VARS", "mask=hy_gcMask",
+                "&\n   makeMaskConsistent=.true.",
+                "&\n   selectBlockType=LEAF",
+                "&\n   doLogMask=.NOT. gcMaskLogged",
+            ],
         )
         self.shockDet = WorkNode(
             name="hy_rk_shockDetect",
-            args=["Uin", "blkLimitsGC", "hy_tiny"])
+            args=["Uin", "hy_Vc", "blkLimitsGC", "loGC"])
         self.initSoln = WorkNode(
             name="hy_rk_initSolnScratch",
-            args=["Uin", "hy_starState", "hy_tmpState", "blkLimitsGC", "stage"]
-        )
-        self.permLims = WorkNode(
-            name="hy_rk_permutateLimits",
-            args=["blkLimits", "blkLimitsGC", "lim", "limgc"]
+            args=["stage", "Uin", "hy_starState", "hy_tmpState",
+                  "&\n   blkLimits", "blkLimitsGC", "lo", "loGC"]
         )
         self.gravAccel = WorkNode(
             name="hy_rk_getGraveAccel",
             args=["hy_starState", "hy_grav",
-                  "&\n   hy_xCenter", "hy_yCenter", "deltas", "hy_geometry", "blkLimitsGC"
+                  "&\n   hy_xCenter", "hy_yCenter", "deltas",
+                  "&\n   blkLimitsGC", "loGC"
             ],
-        )
-        self.calcLims = WorkNode(
-            name="hy_rk_calcLimits",
-            args=["stage", "blkLimits", "limits"]
         )
         self.getFlat = WorkNode(
             name="hy_rk_getFlatteningLimiter",
-            args=["hy_flattening", "hy_starState", "hy_flat3d", "limits"]
+            args=["stage", "hy_starState", "hy_flat3d", "limits", "loGC"]
         )
         self.getFlux = WorkNode(
             name="hy_rk_getFaceFlux",
             args=[
-                "hy_starState", "hy_flat3d", "hy_flx", "hy_fly", "hy_flz",
-                "&\n   lim", "limgc", "stage",
-                "&\n   hy_hybridRiemann", "hy_cvisc", "hy_C_hyp",
-                "&\n   hy_tiny", "hy_smalldens", "hy_smallpres", "hy_smallX",
-                "&\n   hya_flux", "hya_flat", "hya_shck", "hya_rope", "hya_uPlus", "hya_uMinus",
+                "stage", "hy_starState", "hy_flat3d", "hy_flx", "hy_fly", "hy_flz",
+                "&\n   limits", "deltas",
+                "&\n   hy_rope", "hy_flux", "hy_uPlus", "hy_uMinus",
+                "&\n   loGC",
             ],
         )
         self.updSoln = WorkNode(
             name="hy_rk_updateSoln",
             args=[
-                "hy_starState", "hy_tmpState", "rk_coeffs",
+                "stage", "hy_starState", "hy_tmpState",
                 "&\n   hy_grav", "hy_flx", "hy_fly", "hy_flz",
                 "&\n   deltas", "hy_fareaX", "hy_fareaY", "hy_fareaZ", "hy_cvol", "hy_xCenter",
                 "&\n   hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
-                "&\n   hy_geometry",
-                "&\n   hy_smallE", "hy_smalldens", "hy_alphaGLM", "hy_C_hyp",
-                "&\n   dt", "dtOld", "limits",
+                "&\n   dt", "dtOld", "limits", "lo", "loGC",
             ],
         )
         self.reAbund = WorkNode(
             name="hy_rk_renormAbundance",
-            args=["blkLimitsGC", "hy_starState", "hy_smallX"]
+            args=["blkLimitsGC", "hy_starState", "loGC"]
         )
         self.doEos = WorkNode(
-            name="Eos_wrapped",
-            args=["MODE_DENS_EI", "limits", "hy_starState"],
+            name="Eos_multiDim",
+            args=["MODE_DENS_EI", "limits(:, :, stage)", "hy_starState"],
             startswith="@M hy_DIR_TARGET_update_from([hy_starState, limits])",
             endswith="@M hy_DIR_TARGET_update_to([hy_starState])",
         )
         self.putFlux = WorkNode(
             name="Grid_putFluxData",
-            args=["tileDesc", "hy_fluxBufX", "hy_fluxBufY", "hy_fluxBufZ", "blkLimits(LOW,:)"],
+            args=[
+                "tileDesc",
+                "&\n   hy_fluxBufX",
+                "&\n   hy_fluxBufY",
+                "&\n   hy_fluxBufZ",
+                "&\n   blkLimits(LOW,:)",
+            ],
             startswith="@M hy_DIR_TARGET_update_from([hy_fluxBufX, hy_fluxBufY, hy_fluxBufZ])",
         )
 
@@ -134,12 +138,15 @@ class spark_amrex_tele_nodes(spark_nodes):
             name="hy_rk_correctFluxes",
             args=[
                 "Uin", "blkLimits",
-                "&\n   hy_flx", "hy_fly", "hy_flz",
+                "&\n   hy_flx(:,xLo:xHi+1,yLo:yHi    ,zLo:zHi    )",
+                "&\n   hy_fly(:,xLo:xHi  ,yLo:yHi+K2D,zLo:zHi    )",
+                "&\n   hy_flz(:,xLo:xHi  ,yLo:yHi    ,zLo:zHi+K3D)",
                 "&\n   deltas", "hy_fareaX", "hy_fareaY", "hy_fareaZ", "hy_cvol", "hy_xCenter",
                 "&\n   hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
                 "&\n   hy_geometry",
                 "&\n   hy_smallE", "hy_smalldens",
-                "&\n   dt", "isFlux=.false.",
+                "&\n   dt", ".false.",
+                "&\n   lo", "loGC",
             ],
         )
 
@@ -182,7 +189,8 @@ class spark_paramesh_tele_nodes(spark_nodes):
                 "&\n   hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
                 "&\n   hy_geometry",
                 "&\n   hy_smallE", "hy_smalldens",
-                "&\n   dt", "isFlux=.false.",
+                "&\n   dt", ".false.",
+                "&\n   lo", "loGC",
             ],
         )
 
@@ -216,7 +224,7 @@ class spark_paramesh_nontele_nodes(spark_nodes):
 
         self.shockDet = WorkNode(
             name="hy_rk_shockDetect",
-            args=["Uin", "blkLimitsGC", "hy_tiny"],
+            args=["Uin", "hy_Vc", "blkLimitsGC", "loGC"],
             startswith="if (stage==1) then",
             endswith="endif"
         )
@@ -238,7 +246,8 @@ class spark_paramesh_nontele_nodes(spark_nodes):
                 "&\n   hy_xLeft", "hy_xRight", "hy_yLeft", "hy_yRight",
                 "&\n   hy_geometry",
                 "&\n   hy_smallE", "hy_smalldens",
-                "&\n   dt", "isFlux=.true.",
+                "&\n   dt", ".true.",
+                "&\n   lo", "loGC",
             ],
         )
 

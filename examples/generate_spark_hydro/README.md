@@ -1,4 +1,5 @@
 # Example: Spark Hydro
+Tested on Flash-X/Flash-X@ca2deaa41
 
 ## Files
 - file `_spark_nodes.py` has definitions of graph nodes in form of classes (inherited from cg-kit)

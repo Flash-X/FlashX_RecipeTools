@@ -9,19 +9,17 @@ from argparse import ArgumentParser
 def _spark_stage_init(recipe, root, n):
     _shockDet = recipe.add_item(n.shockDet, after=root)
     _initSoln = recipe.add_item(n.initSoln, after=root)
-    _permLims = recipe.add_item(n.permLims, after=root)
 
     # leaf node does nothing
     leaf = flashx.nodes.LeafNode()
-    _leaf = recipe.add_item(leaf, after=[_shockDet, _initSoln, _permLims])
+    _leaf = recipe.add_item(leaf, after=[_shockDet, _initSoln])
 
     return _leaf
 
 
 def _spark_stage(recipe, root, n):
     _gravAccel = recipe.add_item(n.gravAccel, after=root)
-    _calcLims = recipe.add_item(n.calcLims, after=root)
-    _getFlat = recipe.add_item(n.getFlat, after=_calcLims)
+    _getFlat = recipe.add_item(n.getFlat, after=_gravAccel)
     _getFlux = recipe.add_item(n.getFlux, after=_getFlat)
     _saveFluxBuf = recipe.add_item(n.saveFluxBuf, after=_getFlux)
     _updSoln = recipe.add_item(n.updSoln, after=_getFlux)
@@ -54,16 +52,16 @@ def amrex_tele(recipe, root):
     # end stages
     _stageEnd = recipe.add_item(n.stageEnd, after=_innerStage)
 
-    _ifLevGToneBegin = recipe.add_item(n.ifLevGToneBegin, after=_stageEnd)
-    _putFlux = recipe.add_item(n.putFlux, after=_ifLevGToneBegin)
-    _ifLevGToneEnd = recipe.add_item(n.ifLevGToneEnd, after=_putFlux)
-
-    _ifLevLTmaxBegin = recipe.add_item(n.ifLevLTmaxBegin, after=_ifLevGToneEnd)
+    _ifLevLTmaxBegin = recipe.add_item(n.ifLevLTmaxBegin, after=_stageEnd)
     _getFluxCorr_xtra = recipe.add_item(n.getFluxCorr_xtra, after=_ifLevLTmaxBegin)
     _corrSoln = recipe.add_item(n.corrSoln, after=_getFluxCorr_xtra)
     _ifLevLTmaxEnd = recipe.add_item(n.ifLevLTmaxEnd, after=_corrSoln)
 
-    _blockEnd = recipe.add_item(n.blockEnd, after=_ifLevLTmaxEnd)
+    _ifLevGToneBegin = recipe.add_item(n.ifLevGToneBegin, after=_ifLevLTmaxEnd)
+    _putFlux = recipe.add_item(n.putFlux, after=_ifLevGToneBegin)
+    _ifLevGToneEnd = recipe.add_item(n.ifLevGToneEnd, after=_putFlux)
+
+    _blockEnd = recipe.add_item(n.blockEnd, after=_ifLevGToneEnd)
     # end blocks
 
     _levelEnd = recipe.add_item(n.levelEnd, after=_blockEnd)
@@ -177,7 +175,7 @@ def main(variant):
     else:
         raise ValueError("invalid variant")
 
-    recipe.verbose = True
+    recipe.verbose = False
 
     # plot
     # set constants

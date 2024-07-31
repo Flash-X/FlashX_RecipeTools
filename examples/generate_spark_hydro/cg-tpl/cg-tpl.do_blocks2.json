@@ -3,7 +3,9 @@
     "_code": [
       "!Begin loop over blocks",
       "nullify(Uin)",
-      "@M iter_all_begin(LEAF,.false.,blkLimits,blkLimitsGC,deltas)",
+      "@M iter_all_begin(LEAF,.false.,blkLimits,blkLimitsGC,deltas,Uin)",
+      "   lo(:) = blkLimits(LOW, :)",
+      "   loGC(:) = blkLimitsGC(LOW, :)",
       "",
       "   @M hy_mapFluxBuf",
       "   if (hy_geometry /= CARTESIAN) then",
@@ -19,7 +21,7 @@
       "   end if",
       "",
       "   @M hy_nullFluxBuf",
-      "@M iter_end    ! end block loop"
+      "@M iter_end(Uin)    ! end block loop"
     ]
   },
   "_param:__type__": ".f90"

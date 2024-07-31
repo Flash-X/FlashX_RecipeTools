@@ -11,7 +11,8 @@ use hy_rk_interface, ONLY: hy_rk_correctFluxes
 
 !<_connector:var_definition>
 real, pointer, dimension(:,:,:,:) :: fluxBufX, fluxBufY, fluxBufZ
-real, dimension(GRID_ILO:GRID_IHI, GRID_JLO:GRID_JHI, GRID_KLO:GRID_KHI) :: fareaX, fareaY, fareaZ, cvol
+real, dimension(GRID_ILO:GRID_IHI,GRID_JLO:GRID_JHI,GRID_KLO:GRID_KHI) :: fareaX, fareaY, fareaZ
+real, dimension(GRID_ILO:GRID_IHI,GRID_JLO:GRID_JHI,GRID_KLO:GRID_KHI) :: cvol
 real, dimension(GRID_ILO:GRID_IHI) :: xCenter, xLeft, xRight
 real, dimension(GRID_JLO:GRID_JHI) :: yLeft, yRight
 
