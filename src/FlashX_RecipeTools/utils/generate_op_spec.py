@@ -258,6 +258,21 @@ def __build_section_list(lines: list) -> list:
 
     return all_blocks
 
+
+def __adjust_token_keys(tokens: dict) -> dict:
+    """
+    Adjusts keys and certain values inside of the tokens dict to be lowercase.
+    """
+    adjusted = {}
+    for key in tokens:
+        adjusted_key = key.lower()
+        adjusted_token = tokens[key]
+        if adjusted_key in ["common", "lbound", "type", "extents"]:
+            adjusted_token = adjusted_token.lower()
+        adjusted[adjusted_key] = adjusted_token
+    return adjusted
+
+
 def __process_annotation_line(line: str, debug: bool) -> Tuple[str, dict]:
     """
     Processes a milhoja annotation line.
@@ -295,18 +310,6 @@ def __process_annotation_line(line: str, debug: bool) -> Tuple[str, dict]:
         del tokens["origin"]
 
     return name,tokens
-
-
-def __adjust_token_keys(tokens: dict) -> dict:
-    """
-    Adjusts keys and certain values inside of the tokens dict to be lowercase.
-    """
-    adjusted = {}
-    for key in tokens:
-        adjusted_key = key.lower()
-        adjusted_token = tokens[key] if key != "common" else tokens[key].lower()
-        adjusted[adjusted_key] = adjusted_token
-    return adjusted
 
 
 def __process_common_block(lines: list, json: dict, debug: bool) -> dict:
