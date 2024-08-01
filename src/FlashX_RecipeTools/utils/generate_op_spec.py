@@ -11,7 +11,7 @@ from loguru import logger
 from copy import deepcopy
 from pathlib import Path
 from warnings import warn
-from typing import Tuple
+from typing import Tuple,List
 from fparser.two.parser import ParserFactory
 from fparser.common.readfortran import FortranStringReader
 from fparser.two.Fortran2003 import Type_Declaration_Stmt
@@ -340,11 +340,11 @@ def __process_common_block(lines: list, json: dict, debug: bool) -> dict:
     return common_definitions
 
 
-def __process_subroutine_block(lines: list[str], common_definitions: dict, interface_file: str, debug: bool) -> dict:
+def __process_subroutine_block(lines: List[str], common_definitions: dict, interface_file: str, debug: bool) -> dict:
     """
     Processes a subroutine block and returns all argument definitions.
 
-    :param list[str] lines: A list of all lines inside a subroutine block.
+    :param List[str] lines: A list of all lines inside a subroutine block.
     :param dict common_definitions: All common_definitions from the common block.
     :param str interface_file: The name of the interface file.
     :return: A dict containing all variable definitions for the subroutine.
