@@ -207,7 +207,7 @@
         "name": "_hy_vc"
       },
       "blklimitsgc": {
-        "source": "tile_arraybounds"
+        "source": "tile_arrayBounds"
       },
       "hy_starstate": {
         "source": "scratch",
@@ -362,7 +362,7 @@
         "source": "tile_interior"
       },
       "blklimitsgc": {
-        "source": "tile_arraybounds"
+        "source": "tile_arrayBounds"
       },
       "lo": {
         "source": "tile_lo"

@@ -266,6 +266,8 @@ def __process_annotation_line(line: str, debug: bool) -> Tuple[str, dict]:
     :return: The name of the variable in the line & all associated tokens.
     """
     name,tokens = __get_directive_tokens(line, debug)
+    name = name.lower()
+    tokens = __adjust_token_keys(tokens)
     for rw_key in mbc.RW_SYMBOLS:
         key = rw_key.lower()
         if key in tokens:
@@ -287,12 +289,24 @@ def __process_annotation_line(line: str, debug: bool) -> Tuple[str, dict]:
             raise ValueError(msg)
         origin_source, origin_name = [w.strip() for w in tokens["origin"].split(':')]
         tokens["application_specific"] = {
-            "origin": origin_source,
-            "varname": origin_name,
+            "origin": origin_source.lower(),
+            "varname": origin_name.lower(),
         }
         del tokens["origin"]
 
     return name,tokens
+
+
+def __adjust_token_keys(tokens: dict) -> dict:
+    """
+    Adjusts keys and certain values inside of the tokens dict to be lowercase.
+    """
+    adjusted = {}
+    for key in tokens:
+        adjusted_key = key.lower()
+        adjusted_token = tokens[key] if key != "common" else tokens[key].lower()
+        adjusted[adjusted_key] = adjusted_token
+    return adjusted
 
 
 def __process_common_block(lines: list, json: dict, debug: bool) -> dict:
@@ -306,7 +320,8 @@ def __process_common_block(lines: list, json: dict, debug: bool) -> dict:
     common_definitions = {}
     lines = lines[1:-1]
     for line in lines:
-        name,tokens = __process_annotation_line(line.lower(), debug)
+        name,tokens = __process_annotation_line(line, debug)
+
         assert name not in common_definitions, f"{name} defined twice."
         common_definitions[name] = tokens
 
@@ -336,8 +351,7 @@ def __process_subroutine_block(lines: list[str], common_definitions: dict, inter
     subroutine_lines = ""
     for idx,line in enumerate(lines):
         if line.startswith(mbc.DIRECTIVE_LINE):  # parse any annotation lines from the user.
-            var_name,tokens = __process_annotation_line(line.lower(), debug)
-            var_name = var_name.lower()
+            var_name,tokens = __process_annotation_line(line, debug)
             # need to determine the function we are in
             assert var_name not in argument_definitions, f"{var_name} defined twice."
             if mbc.COMMON in tokens:
