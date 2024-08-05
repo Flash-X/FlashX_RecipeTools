@@ -11,6 +11,12 @@ from loguru import logger
 from copy import deepcopy
 from pathlib import Path
 from warnings import warn
+from typing import Tuple,List
+from fparser.two.parser import ParserFactory
+from fparser.common.readfortran import FortranStringReader
+from fparser.two.Fortran2003 import Type_Declaration_Stmt
+from fparser.two.Fortran2003 import Subroutine_Stmt
+from fparser.common.sourceinfo import FortranFormat
 
 from . import milhoja_block_constants as mbc
 
@@ -22,7 +28,6 @@ def evaluate_simple_expression(line: str) -> int:
 
     Can be optimized to reduce -- to + when tokens are parsed
     """
-    # print("Line:", line)
     # get all tokens in expression
     tokens = re.findall(r'\*\*|[\+\-\*\\\(\)]|\d+', line)
 
@@ -41,7 +46,6 @@ def evaluate_simple_expression(line: str) -> int:
     out_queue = []
 
     for token in tokens:
-        # print("Token", token)
         if token.isdigit():
             out_queue.append(int(token))
 
@@ -79,7 +83,6 @@ def evaluate_simple_expression(line: str) -> int:
         i += 1
 
     running = []
-    # print(out_queue)
     # next, evaluate the expression held by out_queue.
     for token in out_queue:
         if token in ops:
@@ -141,18 +144,28 @@ def format_rw_list(line: str) -> list:
     return sorted(rw_range)
 
 
-def __format_structure_index(line) -> list:
+def __format_structure_index(line: str) -> list:
     """
-    Formats the structure index argument for use by the TaskFunctionAssembler
+    Formats the structure index argument for use by the TaskFunctionAssembler.
+
+    :param str line: The line to format.
+    :return: The formatted structure index as a list.
     """
     line = line[1:-1]
     tokens = [token.strip() for token in line.split(',')]
     return [tokens[0].upper(), int(tokens[1])]
 
 
-def __split_non_nested(string: str, delim, nest_begin, nest_end, max_splits = -1) -> list:
+def __split_non_nested(string: str, delim: str, nest_begin: list, nest_end: list, max_splits = -1) -> list:
     """
     Splits a string by commas that are not contained within parenthesis.
+
+    :param str string: The string to split.
+    :param str delim: The delimiter to split by.
+    :param list nest_begin: The list of chars that begin a nest.
+    :param list nest_end: The list of chars that end a nest.
+    :param int max_splits: The number of splits for a string. Default splits entire string.
+    :return: The split string.
     """
     last_idx = 0
     segments = []
@@ -174,19 +187,24 @@ def __split_non_nested(string: str, delim, nest_begin, nest_end, max_splits = -1
             last_idx = idx + 1  # pass the comma
             if last_idx >= len(string) or max_splits > -1 and max_splits < idx:
                 break
+
     # return whole string if could not be split
     if not segments:
         segments.append(string)
     else:
         # append last segment
         segments.append(string[last_idx:])
+
     return segments
 
 
-def __get_directive_tokens(line, debug):
+def __get_directive_tokens(line: str, debug: bool) -> Tuple[str, dict]:
     """
-    Parses a milhoja directive line and returns the name
-    and all associated data with a name.
+    Parses a milhoja directive line and returns the name and all associated data with a name.
+
+    :param str line: The line to parse.
+    :param bool debug: Prints debug information if enabled.
+    :return: A tuple containing the name and tokens.
     """
     token_dict = {}
     tokens = line[len(mbc.DIRECTIVE_LINE):].split("::")
@@ -219,120 +237,225 @@ def __get_directive_tokens(line, debug):
     return name, token_dict
 
 
-def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
+def __build_section_list(lines: list) -> list:
+    """
+    Builds a list containing all lines in each section.
+
+    :param list lines: Every milhoja directive line.
+    :return: The list containing all sections
+    """
+    all_blocks = []
+    for idx,line in enumerate(lines):
+        if "".join(line.split()).startswith(mbc.DIRECTIVE_LINE + mbc.MILHOJA + mbc.BEGIN):
+            sub_start = idx
+            continue
+
+        if "".join(line.split()).startswith(mbc.DIRECTIVE_LINE + mbc.MILHOJA + mbc.END):
+            all_blocks.append(lines[sub_start:idx+1])
+
+    if all_blocks and (not all_blocks[0][0].endswith(mbc.COMMON)):
+        raise RuntimeError("Expected `common` section as first section in interface file.")
+
+    return all_blocks
+
+
+def __adjust_token_keys(tokens: dict) -> dict:
+    """
+    Adjusts keys and certain values inside of the tokens dict to be lowercase.
+    """
+    adjusted = {}
+    for key in tokens:
+        adjusted_key = key.lower()
+        adjusted_token = tokens[key]
+        if adjusted_key in ["common", "lbound", "type", "extents"]:
+            adjusted_token = adjusted_token.lower()
+        adjusted[adjusted_key] = adjusted_token
+    return adjusted
+
+
+def __process_annotation_line(line: str, debug: bool) -> Tuple[str, dict]:
+    """
+    Processes a milhoja annotation line.
+
+    :param str line: The line to process.
+    :return: The name of the variable in the line & all associated tokens.
+    """
+    name,tokens = __get_directive_tokens(line, debug)
+    name = name.lower()
+    tokens = __adjust_token_keys(tokens)
+    for rw_key in mbc.RW_SYMBOLS:
+        key = rw_key.lower()
+        if key in tokens:
+            tokens[key] = format_rw_list(tokens[key])
+
+    # Process extents and update the tokens dictionary.
+    exts = tokens.get("extents", "()")
+    if exts != "()":
+        # extents guaranteed to be surrounded be parens and be comma separated.
+        exts = \
+            "(" + ','.join([str(evaluate_simple_expression(expr)) for expr in exts[1:-1].split(',')]) + ")"
+
+    if "source" in tokens and tokens["source"] in {"external", "scratch"}:
+        tokens["extents"] = exts
+
+    if "origin" in tokens:
+        if tokens["source"] != "external":
+            msg = "Only external is allowed to have origin field."
+            raise ValueError(msg)
+        origin_source, origin_name = [w.strip() for w in tokens["origin"].split(':')]
+        tokens["application_specific"] = {
+            "origin": origin_source.lower(),
+            "varname": origin_name.lower(),
+        }
+        del tokens["origin"]
+
+    return name,tokens
+
+
+def __process_common_block(lines: list, json: dict, debug: bool) -> dict:
+    """
+    Processes all lines in a common block.
+
+    :param list lines: All lines in the common block.
+    :param dict json: The op spec json to modify.
+    :return: A dict of common definitions.
+    """
+    common_definitions = {}
+    lines = lines[1:-1]
+    for line in lines:
+        name,tokens = __process_annotation_line(line, debug)
+
+        assert name not in common_definitions, f"{name} defined twice."
+        common_definitions[name] = tokens
+
+        # format structure index
+        if "structure_index" in common_definitions[name]:
+            idx = common_definitions[name]["structure_index"]
+            idx = __format_structure_index(idx)
+            common_definitions[name]["structure_index"] = idx
+
+        if tokens["source"] in {"external", "scratch"}:
+            json[tokens["source"]][name] = tokens
+
+    return common_definitions
+
+
+def __process_subroutine_block(lines: List[str], common_definitions: dict, interface_file: str, debug: bool) -> dict:
+    """
+    Processes a subroutine block and returns all argument definitions.
+
+    :param List[str] lines: A list of all lines inside a subroutine block.
+    :param dict common_definitions: All common_definitions from the common block.
+    :param str interface_file: The name of the interface file.
+    :return: A dict containing all variable definitions for the subroutine.
+    """
+    lines = lines[1:-1]  # remove begin & end directives.
+    argument_definitions = {}
+    subroutine_lines = ""
+    for idx,line in enumerate(lines):
+        if line.startswith(mbc.DIRECTIVE_LINE):  # parse any annotation lines from the user.
+            var_name,tokens = __process_annotation_line(line, debug)
+            # need to determine the function we are in
+            assert var_name not in argument_definitions, f"{var_name} defined twice."
+            if mbc.COMMON in tokens:
+                common_def = common_definitions[tokens[mbc.COMMON]]
+                if common_def["source"] in {"external", "scratch"}:
+                    tokens = {"source": common_def["source"], "name": tokens[mbc.COMMON]}
+                else:
+                    tokens = common_def
+            else:
+                assert tokens["source"].lower() != "grid_data", \
+                    f"{var_name}, grid_data cannot be local to function."
+            argument_definitions[var_name] = tokens
+
+        elif line.startswith('subroutine'):  # parse the subroutine prototype definition
+            subroutine_lines = '\n'.join(lines[idx:])
+
+    def parse_tree(child, subroutine_defs, common_defs, sub_data={}):
+        # use a dictionary to save any data from the recursive function to avoid
+        # complex return cases, due to the need to parse the entire tree.
+        if child:
+            for sub in child.content:
+                if isinstance(sub, Subroutine_Stmt):
+                    subr_name = str(sub.get_name())
+                    arg_list = str(sub.items[2]).split(', ')
+                    sub_data["name"] = subr_name
+                    sub_data["arg_list"] = [arg.lower() for arg in arg_list]
+
+                elif isinstance(sub, Type_Declaration_Stmt):
+                    dtype = str(sub.items[0]).lower()
+                    name_list = str(sub.items[2]).split(', ')
+                    name_list = [n[:n.find('(')].lower() if '(' in n else n.lower() for n in name_list]
+
+                    for n in name_list:
+                        data = subroutine_defs.get(n.lower(), None)
+                        if not data:
+                            raise RuntimeError(f"Annotation variable & subroutine dummy arg mismatch ({n}).")
+
+                        if 'name' in data:
+                            data = common_defs[data['name']]
+
+                        if data['source'] == 'external' or data['source'] == 'scratch':
+                            data['type'] = dtype
+
+                if hasattr(sub, "content"):
+                    parse_tree(sub, subroutine_defs, common_definitions, sub_data)
+
+
+    # parse the fortran lines using fparser
+    factory = ParserFactory().create(std='f2003')
+    string_reader = FortranStringReader(subroutine_lines)
+    string_reader.set_format(FortranFormat(True, True))
+    tree = factory(string_reader)
+    sub_data = {
+        "name": "",
+        "arg_list": []
+    }
+    if tree:
+        parse_tree(tree, argument_definitions, common_definitions, sub_data)
+
+    # make sure the argument lists match.
+    if set(sub_data["arg_list"]) != set(argument_definitions.keys()):
+        raise Exception(
+            "Dummy argument definitions missing in milhoja block.\n"
+            f"Args: {sub_data['arg_list']}\nDefs:, {list(argument_definitions.keys())}"
+        )
+
+    subroutine_data = {
+        sub_data["name"]: {
+            "interface_file": interface_file,
+            "argument_list": sub_data["arg_list"],
+            "argument_specifications": argument_definitions
+        }
+    }
+    return subroutine_data
+
+
+def __create_op_spec_json(lines: list, intf_name: str, op_name: str, debug: bool) -> dict:
     """
     Create the operation specification json from the list of milhoja directive lines.
-    Does not support nested blocks.
+
+    :param list lines: All milhoja directive lines.
+    :param str intf_name: The name of the interface file.
+    :param str op_name: The operation spec name.
+    :param bool debug: Print debug information if true.
+    :return: Returns the finalized json.
     """
-    subroutines = []
-    common_defs = {}
     sbr_defs = {}
     js = deepcopy(mbc.OP_SPEC_TEMPLATE)
     js["name"] = op_name
 
-    current_block_tokens = set()
-    for line in lines:
-        # update the block stack based on the statement
-        if line.startswith(mbc.DIRECTIVE_LINE + mbc.MILHOJA):
-            tokens = set(line.lower().split(" "))
-            if mbc.BEGIN in tokens:
-                if current_block_tokens:
-                    raise Exception(f"Nested block statements not allowed: {line}")
-                current_block_tokens = tokens
-            elif mbc.END in tokens:
-                if current_block_tokens == set(tokens):
-                    raise Exception(f"Nested block statements are not allowed: {line}")
-                current_block_tokens = set()
-                sbr_defs = {}
-            else:
-                logger.warning("Unrecognized statement: {_line}", _line=line)
-            continue
-
-        # ensure we are inside a milhoja directive block
-        if current_block_tokens:
-            in_common = mbc.COMMON in current_block_tokens
-            # line is a milhoja directive so we process in a specific way.
-            if line.startswith(mbc.DIRECTIVE_LINE):
-                name,tokens = __get_directive_tokens(line, debug)
-
-                for rw_key in mbc.RW_SYMBOLS:
-                    if rw_key in tokens:
-                        tokens[rw_key] = format_rw_list(tokens[rw_key])
-
-                # Process extents and update the tokens dictionary.
-                exts = tokens.get("extents", "()")
-                if exts != "()":
-                    # extents guaranteed to be surrounded be parens and be comma separated.
-                    exts = \
-                        "(" + ','.join([str(evaluate_simple_expression(expr)) for expr in exts[1:-1].split(',')]) + ")"
-                if "source" in tokens and tokens["source"] in {"external", "scratch"}:
-                    tokens["extents"] = exts
-
-                if "origin" in tokens:
-                    if tokens["source"] != "external":
-                        msg = "Only external is allowed to have origin field."
-                        raise ValueError(msg)
-                    origin_source, origin_name = [w.strip() for w in tokens["origin"].split(':')]
-                    tokens["application_specific"] = {
-                        "origin": origin_source,
-                        "varname": origin_name,
-                    }
-                    del tokens["origin"]
-
-                if in_common:
-                    assert name not in common_defs, f"{name} defined twice."
-                    common_defs[name] = tokens
-
-                    # format structure index
-                    if "structure_index" in common_defs[name]:
-                        idx = common_defs[name]["structure_index"]
-                        idx = __format_structure_index(idx)
-                        common_defs[name]["structure_index"] = idx
-
-                    if tokens["source"] in {"external", "scratch"}:
-                        js[tokens["source"]][name] = tokens
-
-                else:
-                    # need to determine the function we are in
-                    assert name not in sbr_defs, f"{name} defined twice."
-                    if mbc.COMMON in tokens:
-                        common_def = common_defs[tokens[mbc.COMMON]]
-                        if common_def["source"] in {"external", "scratch"}:
-                            tokens = {"source": common_def["source"], "name": tokens[mbc.COMMON]}
-                        else:
-                            tokens = common_def
-                    else:
-                        assert tokens["source"].lower() != "grid_data", \
-                            f"{name}, grid_data cannot be local to function."
-                    sbr_defs[name] = tokens
-
-            # line is not a milhoja directive
-            else:
-                # check if line starts with a subroutine def
-                if line.startswith("subroutine"):
-                    routine_info_regex = r"\w+\(.*\)"
-                    info = re.findall(routine_info_regex, line)[0]
-                    arg_start = info.find("(")
-                    name = info[:arg_start]
-                    args = [arg.strip() for arg in info[arg_start+1:-1].split(',')]
-                    subroutines.append(name)
-
-                    # here we assume that the subroutine argument list is complete.
-                    js[name] = {}
-                    js[name]["interface_file"] = intf_name
-                    js[name]["argument_list"] = args
-                    js[name]["argument_specifications"] = {}
-                    js[name]["argument_specifications"].update(sbr_defs)
-
-                    if set(args) != set(sbr_defs.keys()):
-                        raise Exception(
-                            "Dummy argument definitions missing in milhoja block.\n"
-                            f"Args: {args}\nDefs:, {list(sbr_defs.keys())}"
-                        )
+    sections = __build_section_list(lines)
+    # here we assume that the first section found in the list of sections
+    # is always common
+    commons = __process_common_block(sections[0], js, debug)
+    for section in sections[1:]:
+        routine_info = __process_subroutine_block(section, commons, intf_name, debug)
+        sbr_defs.update(routine_info)
 
     # move any scratch or external data in a subroutine to the outer 
-    for routine in subroutines:
-        arg_spec = js[routine]["argument_specifications"]
+    for routine in sbr_defs.keys():
+        arg_spec = sbr_defs[routine]["argument_specifications"]
         for arg,spec in arg_spec.items():
             # here, we need to check the specific source of the variable
             # to determine if it needs to be moved outside of the 
@@ -348,22 +471,26 @@ def __create_op_spec_json(lines, intf_name, op_name, debug) -> dict:
                     js[spec["source"]][identifier] = spec
                     arg_spec[arg] = var_info
 
+    js.update(sbr_defs)
     # clean op spec before returning
     # remove extra information from scratch and external sections
     for shared in {"external", "scratch"}:
         for var in js[shared]:
             del js[shared][var]["source"]
 
-    # print(json.dumps(js,ensure_ascii=False, indent=4))
-
     return js
 
 
-def __get_all_interface_lines(fptr, debug) -> list:
+def __get_all_interface_lines(fptr, debug: bool) -> list:
+    """
+    Get all interface lines that uses milhoja directives.
+
+    :param fptr: The file pointer pointing to the interface file.
+    :param bool debug: If enabled, prints debug information.
+    """
     milhoja_block_stack = []
     lines = []
     full_line = ""
-    # todo:: call strip() less times
 
     # for each line in the file...
     for line in fptr:

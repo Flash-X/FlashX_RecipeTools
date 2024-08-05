@@ -224,7 +224,7 @@ Module Hydro_interface
 
 #define MILHOJA_BLOCK_GC GRID_IHI_GC, GRID_JHI_GC, GRID_KHI_GC
 #define MILHOJA_BLOCK GRID_IHI, GRID_JHI, GRID_KHI
-#define MILHOJA_SCRATCH_GC(_VARS) source=scratch, type=real, extents=[MILHOJA_BLOCK_GC, _VARS], lbound=[tile_lbound, 1]
+#define MILHOJA_SCRATCH_GC(_VARS) source=scratch, extents=[MILHOJA_BLOCK_GC, _VARS], lbound=[tile_lbound, 1]
 
 #include "Spark.h"
 
@@ -237,62 +237,48 @@ Module Hydro_interface
    !!   _lo :: source=tile_lo
    !!   _loGC :: source=tile_lbound
    !!   _hy_starState :: source=scratch, &
-   !!                    type=real, &
    !!                    extents=[MILHOJA_BLOCK_GC, NUNK_VARS], &
    !!                    lbound=[tile_lbound, 1]
    !!   _hy_tmpState :: source=scratch, &
-   !!                   type=real, &
    !!                   extents=[MILHOJA_BLOCK_GC, NUNK_VARS], &
    !!                   lbound=[tile_lbound, 1]
    !!   _stage :: source=external, &
-   !!             type=integer, &
-   !!             customdata={"custom": "generator", "info": "here"}
+   !!             origin=local:stage
    !!   _dt :: source=external, &
-   !!          type=real
+   !!          origin=input_arg:dt
    !!   _dtOld :: source=external, &
-   !!             type=real
+   !!             origin=input_arg:dtOld
    !!   _xCenter_fake :: source=scratch, &
-   !!                    type=real, &
    !!                    extents=[1], &
    !!                    lbound=[1]
    !!   _yCenter_fake :: source=scratch, &
-   !!                    type=real, &
    !!                    extents=[1], &
    !!                    lbound=[1]
    !!   _zCenter_fake :: source=scratch, &
-   !!                    type=real, &
    !!                    extents=[1], &
    !!                    lbound=[1]
    !!   _xLeft_fake :: source=scratch, &
-   !!                  type=real, &
    !!                  extents=[1], &
    !!                  lbound=[1]
    !!   _xRight_fake :: source=scratch, &
-   !!                   type=real, &
    !!                   extents=[1], &
    !!                   lbound=[1]
    !!   _yLeft_fake :: source=scratch, &
-   !!                  type=real, &
    !!                  extents=[1], &
    !!                  lbound=[1]
    !!   _yRight_fake :: source=scratch, &
-   !!                   type=real, &
    !!                   extents=[1], &
    !!                   lbound=[1]
    !!   _fareaX_fake :: source=scratch, &
-   !!                   type=real, &
    !!                   extents=[1, 1, 1], &
    !!                   lbound=[1, 1, 1]
    !!   _fareaY_fake :: source=scratch, &
-   !!                   type=real, &
    !!                   extents=[1, 1, 1], &
    !!                   lbound=[1, 1, 1]
    !!   _fareaZ_fake :: source=scratch, &
-   !!                   type=real, &
    !!                   extents=[1, 1, 1], &
    !!                   lbound=[1, 1, 1]
    !!   _cvol_fake :: source=scratch, &
-   !!                 type=real, &
    !!                 extents=[1, 1, 1], &
    !!                 lbound=[1, 1, 1]
    !!milhoja end common
@@ -301,7 +287,6 @@ Module Hydro_interface
       !!milhoja begin
       !!  Uin :: common=_Uin
       !!  hy_Vc :: source=scratch, &
-      !!           type=real, &
       !!           extents=[MILHOJA_BLOCK_GC], &
       !!           lbound=[tile_lbound]
       !!  blkLimitsGC :: common=_blkLimitsGC
@@ -333,23 +318,18 @@ Module Hydro_interface
       !!   hy_fly :: MILHOJA_SCRATCH_GC(NFLUXES)
       !!   hy_flz :: MILHOJA_SCRATCH_GC(NFLUXES)
       !!   hy_fluxBufX :: source=scratch, &
-      !!                  type=real, &
       !!                  extents=[NXB+K1D, NYB, NZB, NFLUXES], &
       !!                  lbound=[tile_lo, 1]
       !!   hy_fluxBufY :: source=scratch, &
-      !!                  type=real, &
       !!                  extents=[NXB, NYB+K2D, NZB, NFLUXES], &
       !!                  lbound=[tile_lo, 1]
       !!   hy_fluxBufZ :: source=scratch, &
-      !!                  type=real, &
       !!                  extents=[NXB, NYB, NZB+K3D, NFLUXES], &
       !!                  lbound=[tile_lo, 1]
       !!   hy_grav :: source=scratch, &
-      !!              type=real, &
       !!              extents=[3, MILHOJA_BLOCK_GC], &
       !!              lbound=[1, tile_lbound]
       !!   hy_flat3d :: source=scratch, &
-      !!                type=real, &
       !!                extents=[MILHOJA_BLOCK_GC], &
       !!                lbound=[tile_lbound]
       !!   hy_rope :: MILHOJA_SCRATCH_GC(NRECON)
@@ -387,7 +367,7 @@ Module Hydro_interface
          implicit none
          integer, intent(IN) :: lo(3), loGC(3)
          real, dimension(1:, loGC(1):, loGC(2):, loGC(3):), intent(IN OUT) :: Uin
-         real, intent(IN) :: dt, dtold
+         real, intent(IN) :: dt, dtOld
          real, dimension(1:, loGC(1):, loGC(2):, loGC(3):), intent(IN OUT) :: hy_starState
          real, dimension(1:, loGC(1):, loGC(2):, loGC(3):), intent(OUT) :: hy_flx, hy_fly, hy_flz
          real, dimension(1:, loGC(1):, loGC(2):, loGC(3):), intent(IN) :: hy_tmpState

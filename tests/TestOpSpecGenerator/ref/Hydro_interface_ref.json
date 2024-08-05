@@ -7,173 +7,181 @@
   "variable_index_base": 1,
   "external": {
     "_stage": {
-      "type": "integer",
       "extents": "()",
-      "customdata": {
-        "custom": "generator",
-        "info": "here"
-      }
+      "application_specific": {
+          "origin": "local",
+          "varname": "stage"
+      },
+      "type": "integer"
     },
     "_dt": {
-      "type": "real",
-      "extents": "()"
+      "extents": "()",
+      "application_specific": {
+          "origin": "input_arg",
+          "varname": "dt"
+      },
+      "type": "real"
     },
-    "_dtOld": {
-      "type": "real",
-      "extents": "()"
+    "_dtold": {
+      "extents": "()",
+      "application_specific": {
+          "origin": "input_arg",
+          "varname": "dtold"
+      },
+      "type": "real"
     }
   },
   "scratch": {
-    "_hy_starState": {
-      "type": "real",
+    "_hy_starstate": {
       "extents": "(28,28,1,18)",
-      "lbound": "(tile_lbound, 1)"
+      "lbound": "(tile_lbound, 1)",
+      "type": "real"
     },
-    "_hy_tmpState": {
-      "type": "real",
+    "_hy_tmpstate": {
       "extents": "(28,28,1,18)",
-      "lbound": "(tile_lbound, 1)"
+      "lbound": "(tile_lbound, 1)",
+      "type": "real"
     },
-    "_xCenter_fake": {
-      "type": "real",
+    "_xcenter_fake": {
       "extents": "(1)",
-      "lbound": "(1)"
+      "lbound": "(1)",
+      "type": "real"
     },
-    "_yCenter_fake": {
-      "type": "real",
+    "_ycenter_fake": {
       "extents": "(1)",
-      "lbound": "(1)"
+      "lbound": "(1)",
+      "type": "real"
     },
-    "_zCenter_fake": {
-      "type": "real",
+    "_zcenter_fake": {
       "extents": "(1)",
-      "lbound": "(1)"
+      "lbound": "(1)",
+      "type": "real"
     },
-    "_xLeft_fake": {
-      "type": "real",
+    "_xleft_fake": {
       "extents": "(1)",
-      "lbound": "(1)"
+      "lbound": "(1)",
+      "type": "real"
     },
-    "_xRight_fake": {
-      "type": "real",
+    "_xright_fake": {
       "extents": "(1)",
-      "lbound": "(1)"
+      "lbound": "(1)",
+      "type": "real"
     },
-    "_yLeft_fake": {
-      "type": "real",
+    "_yleft_fake": {
       "extents": "(1)",
-      "lbound": "(1)"
+      "lbound": "(1)",
+      "type": "real"
     },
-    "_yRight_fake": {
-      "type": "real",
+    "_yright_fake": {
       "extents": "(1)",
-      "lbound": "(1)"
+      "lbound": "(1)",
+      "type": "real"
     },
-    "_fareaX_fake": {
-      "type": "real",
+    "_fareax_fake": {
       "extents": "(1,1,1)",
-      "lbound": "(1, 1, 1)"
+      "lbound": "(1, 1, 1)",
+      "type": "real"
     },
-    "_fareaY_fake": {
-      "type": "real",
+    "_fareay_fake": {
       "extents": "(1,1,1)",
-      "lbound": "(1, 1, 1)"
+      "lbound": "(1, 1, 1)",
+      "type": "real"
     },
-    "_fareaZ_fake": {
-      "type": "real",
+    "_fareaz_fake": {
       "extents": "(1,1,1)",
-      "lbound": "(1, 1, 1)"
+      "lbound": "(1, 1, 1)",
+      "type": "real"
     },
     "_cvol_fake": {
-      "type": "real",
       "extents": "(1,1,1)",
-      "lbound": "(1, 1, 1)"
+      "lbound": "(1, 1, 1)",
+      "type": "real"
     },
-    "_hy_Vc": {
-      "type": "real",
+    "_hy_vc": {
       "extents": "(28,28,1)",
-      "lbound": "(tile_lbound)"
+      "lbound": "(tile_lbound)",
+      "type": "real"
     },
     "_hy_flx": {
-      "type": "real",
       "extents": "(28,28,1,5)",
-      "lbound": "(tile_lbound, 1)"
+      "lbound": "(tile_lbound, 1)",
+      "type": "real"
     },
     "_hy_fly": {
-      "type": "real",
       "extents": "(28,28,1,5)",
-      "lbound": "(tile_lbound, 1)"
+      "lbound": "(tile_lbound, 1)",
+      "type": "real"
     },
     "_hy_flz": {
-      "type": "real",
       "extents": "(28,28,1,5)",
-      "lbound": "(tile_lbound, 1)"
+      "lbound": "(tile_lbound, 1)",
+      "type": "real"
     },
-    "_hy_fluxBufX": {
-      "type": "real",
+    "_hy_fluxbufx": {
       "extents": "(17,16,1,5)",
-      "lbound": "(tile_lo, 1)"
+      "lbound": "(tile_lo, 1)",
+      "type": "real"
     },
-    "_hy_fluxBufY": {
-      "type": "real",
+    "_hy_fluxbufy": {
       "extents": "(16,17,1,5)",
-      "lbound": "(tile_lo, 1)"
+      "lbound": "(tile_lo, 1)",
+      "type": "real"
     },
-    "_hy_fluxBufZ": {
-      "type": "real",
+    "_hy_fluxbufz": {
       "extents": "(16,16,1,5)",
-      "lbound": "(tile_lo, 1)"
+      "lbound": "(tile_lo, 1)",
+      "type": "real"
     },
     "_hy_grav": {
-      "type": "real",
       "extents": "(3,28,28,1)",
-      "lbound": "(1, tile_lbound)"
+      "lbound": "(1, tile_lbound)",
+      "type": "real"
     },
     "_hy_flat3d": {
-      "type": "real",
       "extents": "(28,28,1)",
-      "lbound": "(tile_lbound)"
+      "lbound": "(tile_lbound)",
+      "type": "real"
     },
     "_hy_rope": {
-      "type": "real",
       "extents": "(28,28,1,7)",
-      "lbound": "(tile_lbound, 1)"
+      "lbound": "(tile_lbound, 1)",
+      "type": "real"
     },
     "_hy_flux": {
-      "type": "real",
       "extents": "(28,28,1,7)",
-      "lbound": "(tile_lbound, 1)"
+      "lbound": "(tile_lbound, 1)",
+      "type": "real"
     },
-    "_hy_uPlus": {
-      "type": "real",
+    "_hy_uplus": {
       "extents": "(28,28,1,7)",
-      "lbound": "(tile_lbound, 1)"
+      "lbound": "(tile_lbound, 1)",
+      "type": "real"
     },
-    "_hy_uMinus": {
-      "type": "real",
+    "_hy_uminus": {
       "extents": "(28,28,1,7)",
-      "lbound": "(tile_lbound, 1)"
+      "lbound": "(tile_lbound, 1)",
+      "type": "real"
     }
   },
   "Hydro_prepBlock": {
     "interface_file": "Hydro_interface.F90",
     "argument_list": [
-      "Uin",
-      "hy_Vc",
-      "blkLimitsGC",
-      "hy_starState",
-      "hy_tmpState",
+      "uin",
+      "hy_vc",
+      "blklimitsgc",
+      "hy_starstate",
+      "hy_tmpstate",
       "stage",
-      "loGC"
+      "logc"
     ],
     "argument_specifications": {
-      "Uin": {
+      "uin": {
         "source": "grid_data",
         "structure_index": [
           "CENTER",
           1
         ],
-        "RW": [
+        "rw": [
           1,
           2,
           3,
@@ -194,26 +202,26 @@
           18
         ]
       },
-      "hy_Vc": {
+      "hy_vc": {
         "source": "scratch",
-        "name": "_hy_Vc"
+        "name": "_hy_vc"
       },
-      "blkLimitsGC": {
+      "blklimitsgc": {
         "source": "tile_arrayBounds"
       },
-      "hy_starState": {
+      "hy_starstate": {
         "source": "scratch",
-        "name": "_hy_starState"
+        "name": "_hy_starstate"
       },
-      "hy_tmpState": {
+      "hy_tmpstate": {
         "source": "scratch",
-        "name": "_hy_tmpState"
+        "name": "_hy_tmpstate"
       },
       "stage": {
         "source": "external",
         "name": "_stage"
       },
-      "loGC": {
+      "logc": {
         "source": "tile_lbound"
       }
     }
@@ -221,48 +229,48 @@
   "Hydro_advance": {
     "interface_file": "Hydro_interface.F90",
     "argument_list": [
-      "Uin",
+      "uin",
       "dt",
-      "dtOld",
-      "hy_starState",
-      "hy_tmpState",
+      "dtold",
+      "hy_starstate",
+      "hy_tmpstate",
       "hy_flx",
       "hy_fly",
       "hy_flz",
-      "hy_fluxBufX",
-      "hy_fluxBufY",
-      "hy_fluxBufZ",
+      "hy_fluxbufx",
+      "hy_fluxbufy",
+      "hy_fluxbufz",
       "hy_grav",
       "hy_flat3d",
       "hy_rope",
       "hy_flux",
-      "hy_uPlus",
-      "hy_uMinus",
+      "hy_uplus",
+      "hy_uminus",
       "deltas",
-      "blkLimits",
-      "blkLimitsGC",
+      "blklimits",
+      "blklimitsgc",
       "lo",
-      "loGC",
-      "hy_xCenter",
-      "hy_yCenter",
-      "hy_zCenter",
-      "hy_xLeft",
-      "hy_xRight",
-      "hy_yLeft",
-      "hy_yRight",
-      "hy_fareaX",
-      "hy_fareaY",
-      "hy_fareaZ",
+      "logc",
+      "hy_xcenter",
+      "hy_ycenter",
+      "hy_zcenter",
+      "hy_xleft",
+      "hy_xright",
+      "hy_yleft",
+      "hy_yright",
+      "hy_fareax",
+      "hy_fareay",
+      "hy_fareaz",
       "hy_cvol"
     ],
     "argument_specifications": {
-      "Uin": {
+      "uin": {
         "source": "grid_data",
         "structure_index": [
           "CENTER",
           1
         ],
-        "RW": [
+        "rw": [
           1,
           2,
           3,
@@ -287,17 +295,17 @@
         "source": "external",
         "name": "_dt"
       },
-      "dtOld": {
+      "dtold": {
         "source": "external",
-        "name": "_dtOld"
+        "name": "_dtold"
       },
-      "hy_starState": {
+      "hy_starstate": {
         "source": "scratch",
-        "name": "_hy_starState"
+        "name": "_hy_starstate"
       },
-      "hy_tmpState": {
+      "hy_tmpstate": {
         "source": "scratch",
-        "name": "_hy_tmpState"
+        "name": "_hy_tmpstate"
       },
       "hy_flx": {
         "source": "scratch",
@@ -311,17 +319,17 @@
         "source": "scratch",
         "name": "_hy_flz"
       },
-      "hy_fluxBufX": {
+      "hy_fluxbufx": {
         "source": "scratch",
-        "name": "_hy_fluxBufX"
+        "name": "_hy_fluxbufx"
       },
-      "hy_fluxBufY": {
+      "hy_fluxbufy": {
         "source": "scratch",
-        "name": "_hy_fluxBufY"
+        "name": "_hy_fluxbufy"
       },
-      "hy_fluxBufZ": {
+      "hy_fluxbufz": {
         "source": "scratch",
-        "name": "_hy_fluxBufZ"
+        "name": "_hy_fluxbufz"
       },
       "hy_grav": {
         "source": "scratch",
@@ -339,68 +347,68 @@
         "source": "scratch",
         "name": "_hy_flux"
       },
-      "hy_uPlus": {
+      "hy_uplus": {
         "source": "scratch",
-        "name": "_hy_uPlus"
+        "name": "_hy_uplus"
       },
-      "hy_uMinus": {
+      "hy_uminus": {
         "source": "scratch",
-        "name": "_hy_uMinus"
+        "name": "_hy_uminus"
       },
       "deltas": {
         "source": "tile_deltas"
       },
-      "blkLimits": {
+      "blklimits": {
         "source": "tile_interior"
       },
-      "blkLimitsGC": {
+      "blklimitsgc": {
         "source": "tile_arrayBounds"
       },
       "lo": {
         "source": "tile_lo"
       },
-      "loGC": {
+      "logc": {
         "source": "tile_lbound"
       },
-      "hy_xCenter": {
+      "hy_xcenter": {
         "source": "scratch",
-        "name": "_xCenter_fake"
+        "name": "_xcenter_fake"
       },
-      "hy_yCenter": {
+      "hy_ycenter": {
         "source": "scratch",
-        "name": "_yCenter_fake"
+        "name": "_ycenter_fake"
       },
-      "hy_zCenter": {
+      "hy_zcenter": {
         "source": "scratch",
-        "name": "_zCenter_fake"
+        "name": "_zcenter_fake"
       },
-      "hy_xLeft": {
+      "hy_xleft": {
         "source": "scratch",
-        "name": "_xLeft_fake"
+        "name": "_xleft_fake"
       },
-      "hy_xRight": {
+      "hy_xright": {
         "source": "scratch",
-        "name": "_xRight_fake"
+        "name": "_xright_fake"
       },
-      "hy_yLeft": {
+      "hy_yleft": {
         "source": "scratch",
-        "name": "_yLeft_fake"
+        "name": "_yleft_fake"
       },
-      "hy_yRight": {
+      "hy_yright": {
         "source": "scratch",
-        "name": "_yRight_fake"
+        "name": "_yright_fake"
       },
-      "hy_fareaX": {
+      "hy_fareax": {
         "source": "scratch",
-        "name": "_fareaX_fake"
+        "name": "_fareax_fake"
       },
-      "hy_fareaY": {
+      "hy_fareay": {
         "source": "scratch",
-        "name": "_fareaY_fake"
+        "name": "_fareay_fake"
       },
-      "hy_fareaZ": {
+      "hy_fareaz": {
         "source": "scratch",
-        "name": "_fareaZ_fake"
+        "name": "_fareaz_fake"
       },
       "hy_cvol": {
         "source": "scratch",
