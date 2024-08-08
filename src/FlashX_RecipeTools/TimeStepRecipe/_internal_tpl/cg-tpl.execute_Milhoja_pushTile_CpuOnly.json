@@ -21,7 +21,7 @@
       "   nThreads=or_nThreads_${orchestration_count} &",
       ")",
       "call Timers_stop(\"${taskfunction_name} setup\")",
-      "call Grid_getTileIterator(itor, nodetype=LEAF)",
+      "call Grid_getTileIterator(itor, nodetype=LEAF, preComm=comm)",
       "call Timers_start(\"${taskfunction_name} iterate\")",
       "do while(itor%isValid())",
       "   call itor%currentTile(tileDesc)",
