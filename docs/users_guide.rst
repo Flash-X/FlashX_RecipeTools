@@ -135,30 +135,32 @@ Common blocks are surrounded by `!!milhoja begin common` and `!!milhoja end comm
 statements. All variable annotations go inbetween.
 
 Ex:
-!!milhoja begin common
-!!   _Uin :: source=grid_data, &
-!!           structure_index=[center, 1], &
-!!           RW=[1:NUNK_VARS]
-!!   _blkLimits :: source=tile_interior
-!!   _blkLimitsGC :: source=tile_arrayBounds
-!!   _lo :: source=tile_lo
-!!   _loGC :: source=tile_lbound
-!!   _hy_starState :: source=scratch, &
-!!                    type=real, &
-!!                    extents=[MILHOJA_BLOCK_GC, NUNK_VARS], &
-!!                    lbound=[tile_lbound, 1]
-!!   _hy_tmpState :: source=scratch, &
-!!                   type=real, &
-!!                   extents=[MILHOJA_BLOCK_GC, NUNK_VARS], &
-!!                   lbound=[tile_lbound, 1]
-!!   _stage :: source=external, &
-!!             type=integer, &
-!!             origin=local:stage
-!!   _dt :: source=external, &
-!!          type=real, &
-!!          origin=input_arg:dt
-...
-!!milhoja end common
+.. code-block:: fortran
+
+    !!milhoja begin common
+    !!   _Uin :: source=grid_data, &
+    !!           structure_index=[center, 1], &
+    !!           RW=[1:NUNK_VARS]
+    !!   _blkLimits :: source=tile_interior
+    !!   _blkLimitsGC :: source=tile_arrayBounds
+    !!   _lo :: source=tile_lo
+    !!   _loGC :: source=tile_lbound
+    !!   _hy_starState :: source=scratch, &
+    !!                    type=real, &
+    !!                    extents=[MILHOJA_BLOCK_GC, NUNK_VARS], &
+    !!                    lbound=[tile_lbound, 1]
+    !!   _hy_tmpState :: source=scratch, &
+    !!                   type=real, &
+    !!                   extents=[MILHOJA_BLOCK_GC, NUNK_VARS], &
+    !!                   lbound=[tile_lbound, 1]
+    !!   _stage :: source=external, &
+    !!             type=integer, &
+    !!             origin=local:stage
+    !!   _dt :: source=external, &
+    !!          type=real, &
+    !!          origin=input_arg:dt
+    ...
+    !!milhoja end common
 
 Subroutine Blocks
 """""""""""""""""
@@ -170,29 +172,31 @@ variable annotation between the `!!milhoja begin` statement, and the line that
 contains the subroutine keyword for the subroutine.
 
 Ex:
-interface
-    !!milhoja begin
-    !!  Uin :: common=_Uin
-    !!  hy_Vc :: source=scratch, &
-    !!           type=real, &
-    !!           extents=[MILHOJA_BLOCK_GC], &
-    !!           lbound=[tile_lbound]
-    !!  blkLimits :: common=_blkLimits
-    !!  blkLimitsGC :: common=_blkLimitsGC
-    !!  hy_starState :: common=_hy_starState
-    !!  hy_tmpState :: common=_hy_tmpState
-    !!  stage :: common=_stage
-    !!  lo :: common=_lo
-    !!  loGC :: common=_loGC
-    subroutine Hydro_prepBlock(Uin, hy_Vc, blkLimits, blkLimitsGC, hy_starState, hy_tmpState, &
-                               stage, lo, loGC)
-        implicit none
-        integer, intent(IN) :: lo(3), loGC(3)
-        real, dimension(1:, loGC(1):, loGC(2):, loGC(3):), intent(IN OUT) :: Uin
-        real, dimension(1:, loGC(1):, loGC(2):, loGC(3):), intent(OUT) :: hy_starState, hy_tmpState
-        real, dimension(loGC(1):, loGC(2):, loGC(3):), intent(OUT) :: hy_Vc
-        integer, dimension(LOW:HIGH, MDIM), intent(IN) :: blkLimits, blkLimitsGC
-        integer, intent(IN) :: stage
-        end subroutine Hydro_prepBlock
-    !!milhoja end
-end interface
+.. code-block:: fortran
+
+    interface
+        !!milhoja begin
+        !!  Uin :: common=_Uin
+        !!  hy_Vc :: source=scratch, &
+        !!           type=real, &
+        !!           extents=[MILHOJA_BLOCK_GC], &
+        !!           lbound=[tile_lbound]
+        !!  blkLimits :: common=_blkLimits
+        !!  blkLimitsGC :: common=_blkLimitsGC
+        !!  hy_starState :: common=_hy_starState
+        !!  hy_tmpState :: common=_hy_tmpState
+        !!  stage :: common=_stage
+        !!  lo :: common=_lo
+        !!  loGC :: common=_loGC
+        subroutine Hydro_prepBlock(Uin, hy_Vc, blkLimits, blkLimitsGC, hy_starState, hy_tmpState, &
+                                stage, lo, loGC)
+            implicit none
+            integer, intent(IN) :: lo(3), loGC(3)
+            real, dimension(1:, loGC(1):, loGC(2):, loGC(3):), intent(IN OUT) :: Uin
+            real, dimension(1:, loGC(1):, loGC(2):, loGC(3):), intent(OUT) :: hy_starState, hy_tmpState
+            real, dimension(loGC(1):, loGC(2):, loGC(3):), intent(OUT) :: hy_Vc
+            integer, dimension(LOW:HIGH, MDIM), intent(IN) :: blkLimits, blkLimitsGC
+            integer, intent(IN) :: stage
+            end subroutine Hydro_prepBlock
+        !!milhoja end
+    end interface
