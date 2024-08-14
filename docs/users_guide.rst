@@ -135,7 +135,8 @@ Common blocks are surrounded by `!!milhoja begin common` and `!!milhoja end comm
 statements. All variable annotations go inbetween.
 
 Ex:
-.. code-block:: fortran
+
+.. code-block::
 
     !!milhoja begin common
     !!   _Uin :: source=grid_data, &
@@ -172,7 +173,8 @@ variable annotation between the `!!milhoja begin` statement, and the line that
 contains the subroutine keyword for the subroutine.
 
 Ex:
-.. code-block:: fortran
+
+.. code-block::
 
     interface
         !!milhoja begin
