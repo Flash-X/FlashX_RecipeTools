@@ -26,8 +26,11 @@ In keeping the spirit of Fortran, any variable names that are annotation inside
 of a subroutine will be case-insensitive. Ensure that the case of the keywords
 is correct before calling any code generation tools.
 
-Generally, any valid keyword used by the Milhoja pypackage for code generation
-is a valid keyword inside of this annotation syntax.
+Generally, any valid keyword used by the Milhoja pypackage for Task Function arguments
+is a valid keyword inside of this annotation syntax. The source for the Milhoja
+pypackage documentation can be found here_, under the section `task_function:argument_specifications`.
+
+.. _here: https://github.com/Flash-X/Milhoja/tree/master/tools/milhoja_pypkg/docs/source
 
 Variable Annotation
 '''''''''''''''''''
