@@ -20,20 +20,15 @@ Item code. This syntax also reduces the burden on the user, since they don't nee
 to manually create the operation specification JSONs. As the syntax and parsing
 tool become more advanced, the user will need to annotate less information.
 
-*Note*: Fortran is not case-sensitive, but a large portion of syntax keywords
-are case-sensitive. This is because the operation specfications and Task
-Function Specifications defined inside of the Milhoja pypackage documentation
-cannot assume what language they are generating code for (C++ or Fortran), and
-some keywords used by the code generator are used directly when generating code. 
-In keeping the spirit of Fortran, any variable names that are annotation inside
-of a subroutine will be case-insensitive. Ensure that the case of the keywords
-is correct before calling any code generation tools.
-
-Generally, any valid keyword used by the Milhoja pypackage for Task Function arguments
-is a valid keyword inside of this annotation syntax. The source for the Milhoja
-pypackage documentation can be found here_.
-
-.. _here: https://github.com/Flash-X/Milhoja/blob/master/tools/milhoja_pypkg/docs/source/users_manual.rst#argument_specifications
+Modern Fortran is case-insensitive, but a large portion of syntax keywords
+are case-sensitive. While this annotation syntax is only used for static Fortran
+subroutines, the underlying code generation tools generate both C++ and Fortran
+code, and cannot assume what language they are generating code for. Some keywords
+are also used directly when generating code. Therefore, keywords used by the code
+generation tools must be case-sensitive. However, in keeping the spirit of Fortran
+the names of any annotated variables will be case-insensitive. So, keywords inside
+of a variable annotation are case-sensitive, but any variable name or attribute
+value referencing a variable by name are not.
 
 Variable Annotation
 '''''''''''''''''''
@@ -51,6 +46,12 @@ by a recipe. Annotating a variable uses the following format:
 Where the values of each attribute are strings, integer, or array values. Arrays
 are surrounded by square brackets. Notice that if the user is declaring attributes
 across multiple lines, they will need to use '&' as the line continuation character.
+
+Generally, any valid keyword used by the Milhoja pypackage for Task Function arguments
+is a valid keyword inside of this annotation syntax. The source for the Milhoja
+pypackage documentation can be found here_.
+
+.. _here: https://github.com/Flash-X/Milhoja/blob/master/tools/milhoja_pypkg/docs/source/users_manual.rst#argument_specifications
 
 Attributes
 """"""""""
