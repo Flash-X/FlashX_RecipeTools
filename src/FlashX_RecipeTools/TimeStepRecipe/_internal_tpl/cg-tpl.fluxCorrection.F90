@@ -28,6 +28,7 @@ if (hy_fluxCorrect) then
 
    !Store flux buffer in semipermanent flux storage (SPFS)
    nullify(fluxBufX); nullify(fluxBufY); nullify(fluxBufZ);
+   call Timers_start("put loop")
    call Grid_getTileIterator(itor, LEAF, tiling=.false.)
    do while(itor%isValid())
       call itor%currentTile(tileDesc)
@@ -48,14 +49,18 @@ if (hy_fluxCorrect) then
       call itor%next()
    end do
    call Grid_releaseTileIterator(itor)
+   call Timers_stop("put loop")
 
 
    !Communicate the fine fluxes
+   call Timers_start("communicate")
    call Grid_communicateFluxes(ALLDIR, UNSPEC_LEVEL)
+   call Timers_stop("communicate")
 
 
    nullify (Uin)
    nullify(fluxBufX); nullify(fluxBufY); nullify(fluxBufZ);
+   call Timers_start("apply loop")
    call Grid_getTileIterator(itor, LEAF, tiling=.false.)
    do while (itor%isValid())
       call itor%currentTile(tileDesc)
@@ -101,6 +106,7 @@ if (hy_fluxCorrect) then
       call itor%next()
    end do !!block loop
    call Grid_releaseTileIterator(itor)
+   call Timers_stop("apply loop")
 
    call Timers_stop("flux correction")
 end if !Flux correction
