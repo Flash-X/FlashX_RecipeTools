@@ -116,7 +116,7 @@ annotation if that source is being used. The list of valid sources includes:
                     is a special keyword that inserts the lo array contained inside
                     of a tile, and is a 3 dimensional array. The dimensionality
                     of lbound must match the dimensionality of `extents`, and as
-                    such the array that this annotation is for.
+                    such, the array that this annotation is for.
 
 Common attribute
 ^^^^^^^^^^^^^^^^
