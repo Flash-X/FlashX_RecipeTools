@@ -37,11 +37,11 @@ In order to develop an operation specification, the user needs to annotate every
 dummy argument inside each dummy argument list in all subroutines that are called
 by a recipe. Annotating a variable uses the following format:
 
-..code-block:
+.. code-block::
 
-!! variable_name :: attribute_name1=value1, &
-!!                  attribute_name2=[low : high], &
-!!                  attribute_name3=value3 ...
+    !! variable_name :: attribute_name1=value1, &
+    !!                  attribute_name2=[low : high], &
+    !!                  attribute_name3=value3 ...
 
 Where the values of each attribute are strings, integer, or array values. Arrays
 are surrounded by square brackets. Notice that if the user is declaring attributes
