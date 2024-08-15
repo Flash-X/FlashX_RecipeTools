@@ -68,9 +68,11 @@ accepted values for the source attribute. These are case-sensitive. All sources
 have a list of required attributes that need to be included inside the variable
 annotation if that source is being used. The list of valid sources includes:
 
-• `external`
-    * Variables that need to come from the driver code, passed into data packets via constructor
-    * Can be used for constants, things like delta time.
+• ``external``
+    * Variables that update their values in each time step that appear in the
+      driver code. As such, each variable must be passed into data item via a
+      the Data Item constructor.
+    * Ex: constants or delta time.
     * Required attributes: `origin`
         * `origin`: Tells the recipe tool where the input argument is obtained
                     from inside of the generated code, so that it can pass the
@@ -83,14 +85,14 @@ annotation if that source is being used. The list of valid sources includes:
 
 .. _documentation: https://github.com/Flash-X/Milhoja/blob/master/tools/milhoja_pypkg/docs/source/users_manual.rst#tile_metadata-sources
 
-* `lbound`
+* ``lbound``
     * Variables that are lower bounds of array variables
     * Required attributes: `array`
         * `array`: The array that this lower bound is associated with. This value
                    should be the name of an existing annotated variable that has 
                    an ``lbound`` attribute.
 
-* `grid_data`
+* ``grid_data``
     * Source for grid arrays, generally solution data or face arrays.
     * Required attributes: `structure_index`
         * `structure_index`: An array where the first element is some grid data
@@ -104,7 +106,7 @@ annotation if that source is being used. The list of valid sources includes:
         * `w`: The indices to write
         * `rw`: The indices to read and write.
 
-* `scratch`
+* ``scratch``
     * Variable is array data that is allocated on the device and used as scratch memory.
     * Required attributes: `extents`, `lbound`
         * `extents`: An array containing the size of each dimension in the array.
