@@ -96,7 +96,7 @@ class TimeStepIR:
         self._grid_json_path = value
 
 
-    def generate_all_codes(self, dest=None) -> None:
+    def generate_all_codes(self, dest=None, orchStyle="pushTile") -> None:
         self.objdir = self.flowGraph.objdir
         if dest is None:
             dest = self.objdir
@@ -114,7 +114,7 @@ class TimeStepIR:
         # generate taskfunction and dataitem codes.
         self._generate_milhoja_codes(dest)
         # generate TimeAdvance code
-        self._generate_TimeAdvance_code(dest)
+        self._generate_TimeAdvance_code(dest, orchStyle)
 
         # lastly, re-calculate dependencies in the objdir
         self._generate_makefile_depend()
@@ -302,7 +302,7 @@ class TimeStepIR:
             self.tf_spec_all = {tf_name:tf_spec}
 
 
-    def _generate_TimeAdvance_code(self, dest:Path) -> None:
+    def _generate_TimeAdvance_code(self, dest:Path, _orchStyle) -> None:
 
         flowGraph = self.flowGraph
 
@@ -311,7 +311,7 @@ class TimeStepIR:
             Ctr_TAParseNode,
         )
 
-        ctrParseGraph = Ctr_TAParseGraph(tf_spec_all=self.tf_spec_all)
+        ctrParseGraph = Ctr_TAParseGraph(tf_spec_all=self.tf_spec_all, orchStyle=_orchStyle)
         ctrParseNode = Ctr_TAParseNode(ctrParseGraph)
 
         # NOTE: cgkit.ControlFlowGraph.parsecode is just a wrapper

@@ -148,7 +148,7 @@ class Ctr_InitSubRootNode(AbstractControllerNode):
 
 
 class Ctr_TAParseGraph(AbstractControllerGraph):
-    def __init__(self, tf_spec_all, indentSpace=" " * 3, verbose=False):
+    def __init__(self, tf_spec_all, indentSpace=" " * 3, orchStyle="pushTile", verbose=False):
         super().__init__(controllerType="view")
         self._log = logger
         self._stree = SourceTree(
@@ -163,6 +163,10 @@ class Ctr_TAParseGraph(AbstractControllerGraph):
         self._callReturnStack = list()
         self._variables = dict()
         self._tf_spec_all = tf_spec_all
+        self._orchStyle = orchStyle
+        if self._orchStyle not in ["pushTile", "execute"]:
+            msg = f"Unrecognized Orchestration style, ${orchStyle}"
+            raise RuntimeError(msg)
 
         self.orchestration_count = 0
 
@@ -198,6 +202,9 @@ class Ctr_TAParseGraph(AbstractControllerGraph):
 
     def getVariables(self):
         return self._variables
+
+    def getOrchStyle(self):
+        return self._orchStyle
 
     def push_variable(self, vardef):
         """
@@ -290,6 +297,7 @@ class Ctr_TAParseNode(AbstractControllerNode):
         self._log = logger
         self._stree = ctrParseGraph.getSourceTree()
         self._tf_spec_all = ctrParseGraph.getAllTFSpec()
+        self._orchStyle = ctrParseGraph.getOrchStyle()
         self._ctrParseGraph = ctrParseGraph
         self._beginEnd_callReturnStack = dict()
 
@@ -334,7 +342,14 @@ class Ctr_TAParseNode(AbstractControllerNode):
                 _tf_name = tf_name
             )
             # load single device template
-            tpl_name = f"cg-tpl.execute_Milhoja_pushTile_{device.capitalize()}Only.json"
+            if self._orchStyle == "pushTile":
+                tpl_name = f"cg-tpl.execute_Milhoja_pushTile_{device.capitalize()}Only.json"
+            elif self._orchStyle == "execute":
+                tpl_name = f"cg-tpl.execute_Milhoja_{device.capitalize()}Only.json"
+            else:
+                msg = f"Unrecognized Orchestration style, ${orchStyle}"
+                raise RuntimeError(msg)
+
             tree = srctree.load(
                 INTERNAL_TEMPLATE_PATH / tpl_name
             )

@@ -1,0 +1,31 @@
+{
+  "_param:orchestration_count": "",
+  "_param:taskfunction_name": "",
+  "_param:dataitem_name": "",
+  "_connector:use_interface": {
+    "_code": [
+      "use Orchestration_interface, ONLY: Orchestration_executeTasks_Cpu",
+      "use Orchestration_data, ONLY: or_nThreads_${orchestration_count}"
+    ]
+  },
+  "_connector:execute": {
+    "_code": [
+      {
+        "_link:init_dataitem": []
+      },
+      "",
+      "call Timers_start(\"Milhoja::${taskfunction_name}\")",
+      "call Orchestration_executeTasks_Cpu( &",
+      "   MH_taskFunction=${taskfunction_name}_Cpp2C, &",
+      "   prototype_Cptr=${dataitem_name}, &",
+      "   nThreads=or_nThreads_${orchestration_count} &",
+      ")",
+      "call Timers_stop(\"Milhoja::${taskfunction_name}\")",
+      "",
+      {
+        "_link:delete_dataitem": []
+      }
+    ]
+  },
+  "_param:__type__": ".f90"
+}
