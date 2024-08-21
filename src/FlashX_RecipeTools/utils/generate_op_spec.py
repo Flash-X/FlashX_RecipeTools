@@ -267,7 +267,7 @@ def __adjust_token_keys(tokens: dict) -> dict:
     for key in tokens:
         adjusted_key = key.lower()
         adjusted_token = tokens[key]
-        if adjusted_key in ["common", "lbound", "type", "extents"]:
+        if adjusted_key in ["common", "lbound", "type", "extents", "array"]:
             adjusted_token = adjusted_token.lower()
         adjusted[adjusted_key] = adjusted_token
     return adjusted
