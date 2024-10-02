@@ -1,5 +1,4 @@
 import re
-import json
 from loguru import logger
 
 import cgkit.ctree.srctree as srctree
@@ -8,6 +7,7 @@ from cgkit.ctree.srctree import SourceTree
 from cgkit.cflow.controller import (
     AbstractControllerGraph,
     AbstractControllerNode,
+    AbstractControllerMultiEdge,
     CtrRet,
 )
 
@@ -108,27 +108,116 @@ def _milhoja_check_internal_error():
     return 'call Orchestration_checkInternalError("TimeAdvance", MH_ierr)'
 
 
-class Ctr_InitSubRootNode(AbstractControllerNode):
+def _get_null_subroutine_calls(tf_spec):
+    """
+    A helper function to extract the subroutine calls
+    without the device suffixes, e.g., "_cpu" or "_gpu",
+    case-insensitively.
+    """
+    device_pattern = r'_(cpu|gpu)$'
+    res = []
+    for node in tf_spec.internal_subroutine_graph:
+        for sub in node:
+            res.append(re.sub(device_pattern, '', sub, flags=re.IGNORECASE))
+    return res
+
+
+class Ctr_InitTAGraph(AbstractControllerGraph):
     def __init__(self):
         super().__init__(controllerType="modify")
+        self._devices = []
+        self._tfNodes = []
+        self._orchBegins = []
+        self._orchEnds = []
+        self._inConcurrent = False
+
+    def __call__(self, graph, graphAttribute):
+        pass
+
+    def getCurrentDevices(self):
+        if self.inConcurrent:
+            assert isinstance(self._devices[-1], list)
+            return self._devices[-1]
+        else:
+            return self._devices
+
+    def getCurrentTFNodes(self):
+        return self._tfNodes
+
+    def pushOrchBegin(self, node):
+        assert isinstance(node, int)
+        self._orchBegins.append(node)
+
+    def pushOrchEnd(self, node):
+        assert isinstance(node, int)
+        self._orchEnds.append(node)
+
+    def getCurrentOrchBegin(self):
+        return self._orchBegins[-1]
+
+    def getCurrentOrchEnd(self):
+        return self._orchEnds[-1]
+
+    @property
+    def devices(self):
+        return self._devices
+
+    @devices.setter
+    def devices(self, value:list):
+        self._devices = value
+
+    @property
+    def tfNodes(self):
+        return self._tfNodes
+
+    @tfNodes.setter
+    def tfNodes(self, value:list):
+        self._tfNodes = value
+
+    @property
+    def inConcurrent(self):
+        return self._inConcurrent
+
+    @inConcurrent.setter
+    def inConcurrent(self, value:bool):
+        self._inConcurrent = value
+
+
+class Ctr_InitTANode(AbstractControllerNode):
+    def __init__(self, ctrInitTAGraph):
+        super().__init__(controllerType="modify")
         self._log = logger
+        self._ctrInitTAGraph = ctrInitTAGraph
 
     def __call__(self, graph, node, nodeAttributes):
         nodeObj = nodeAttributes["obj"]
 
         # if orchestration begins, mark taskfunction nodes
         if isinstance(nodeObj, OrchestrationBeginNode):
-            successors = [graph.G.nodes[n]["obj"] for n in graph.G.successors(node)]
-            devices = [graph.G.nodes[n]["device"] for n in graph.G.successors(node)]
-            graph.setNodeAttribute(node, "TFNodes", successors)
-            graph.setNodeAttribute(node, "devices", devices)
+            self._ctrInitTAGraph.pushOrchBegin(node)
 
         # if orchestration ends, mark taskfunction nodes
         if isinstance(nodeObj, OrchestrationEndNode):
-            predecessors = [graph.G.nodes[n]["obj"] for n in graph.G.predecessors(node)]
-            graph.setNodeAttribute(node, "TFNodes", predecessors)
+            beginNodeID = self._ctrInitTAGraph.getCurrentOrchBegin()
+            endNodeID = node
+            self._ctrInitTAGraph.pushOrchBegin(endNodeID)
+
+            # mark orchestration pattern
+            graph.setNodeAttribute(beginNodeID, "TFNodes", self._ctrInitTAGraph.tfNodes)
+            graph.setNodeAttribute(endNodeID, "TFNodes", self._ctrInitTAGraph.tfNodes)
+            graph.setNodeAttribute(beginNodeID, "devices", self._ctrInitTAGraph.devices)
+            graph.setNodeAttribute(endNodeID, "devices", self._ctrInitTAGraph.devices)
+
+            # reset stashes
+            self._ctrInitTAGraph.devices = []
+            self._ctrInitTAGraph.tfNodes = []
 
         if graph.nodeHasSubgraph(node):
+            # found taskfunction
+            device = nodeAttributes["device"]
+            self._ctrInitTAGraph.getCurrentDevices().append(device)
+            self._ctrInitTAGraph.getCurrentTFNodes().append(nodeObj)
+
             sGraph = graph.nodeGetSubgraph(node)
             subGraphAttributes = sGraph.G.graph
 
@@ -145,6 +234,27 @@ class Ctr_InitSubRootNode(AbstractControllerNode):
             nodeObj.name = subsubGraphAttributes["tf_name"]
 
         return CtrRet.SUCCESS
+
+
+class Ctr_InitTAMultiEdge(AbstractControllerMultiEdge):
+    def __init__(self, ctrInitTAGraph):
+        super().__init__(controllerType="view")
+        self._log = logger
+        self._ctrInitTAGraph = ctrInitTAGraph
+
+    def __call__(self, graph, node, nodeAttribute, successors):
+        self._log.info("entering multiedge at node = {_node}", _node=node)
+        self._ctrInitTAGraph.getCurrentDevices().append(list())
+        self._ctrInitTAGraph.inConcurrent = True
+
+    def q(self, graph, node, nodeAttribute, predecessors):
+        self._log.info("exiting multiedge at node = {_node}", _node=node)
+        # flattening devices
+        self._ctrInitTAGraph.devices = [
+            '_'.join(item) if isinstance(item, list) else item
+            for item in self._ctrInitTAGraph.devices
+        ]
+        self._ctrInitTAGraph.inConcurrent = False
 
 
 class Ctr_TAParseGraph(AbstractControllerGraph):
@@ -320,35 +430,112 @@ class Ctr_TAParseNode(AbstractControllerNode):
         devices = nodeAttribute["devices"]
         if len(devices) == 1:
             device = devices[0].lower()
-            # device must be cpu or gpu
-            if device not in ["cpu", "gpu"]:
-                msg = f"Unrecognized device={device} " + \
-                      f"for taskfunction={nodeAttribute['TFNodes'][0].name}"
-                raise RuntimeError(msg)
+            if '_' not in device:
+                # found single device pattern
+                # device must be cpu or gpu
+                if device not in ["cpu", "gpu"]:
+                    msg = f"Unrecognized device={device} " + \
+                          f"for taskfunction={nodeAttribute['TFNodes'][0].name}"
+                    raise RuntimeError(msg)
 
-            tf_name = nodeAttribute["TFNodes"][0].name
-            tf_spec = self._tf_spec_all[tf_name]
-            self._log.info(
-                "Found single {_device} Action, {_tf_name}",
-                _device=device,
-                _tf_name = tf_name
-            )
-            # load single device template
-            tpl_name = f"cg-tpl.execute_Milhoja_pushTile_{device.capitalize()}Only.json"
-            tree = srctree.load(
-                INTERNAL_TEMPLATE_PATH / tpl_name
-            )
-            tree["_param:orchestration_count"] = str(orch_cnt)
-            tree["_param:taskfunction_name"] = str(tf_name)
-            tree["_param:dataitem_name"] = _determine_dataitem_name(tf_spec)
-            # link tree
-            pathInfo = self._stree.link(tree, linkPath=srctree.LINK_PATH_FROM_STACK)
-            # update links
-            linkKeyList = srctree.search_links(tree)
-            self._stree.pushLink(linkKeyList)
+                tf_name = nodeAttribute["TFNodes"][0].name
+                tf_spec = self._tf_spec_all[tf_name]
+                self._log.info(
+                    "Found single {_device} Action, {_tf_name}",
+                    _device=device,
+                    _tf_name = tf_name
+                )
+                # load single device template
+                tpl_name = f"cg-tpl.execute_Milhoja_pushTile_{device.capitalize()}Only.json"
+                tree = srctree.load(
+                    INTERNAL_TEMPLATE_PATH / tpl_name
+                )
+                tree["_param:orchestration_count"] = str(orch_cnt)
+                tree["_param:taskfunction_name"] = str(tf_name)
+                tree["_param:dataitem_name"] = _determine_dataitem_name(tf_spec)
+                # link tree
+                pathInfo = self._stree.link(tree, linkPath=srctree.LINK_PATH_FROM_STACK)
+                # update links
+                linkKeyList = srctree.search_links(tree)
+                self._stree.pushLink(linkKeyList)
+            else:
+                # found cpu/gpu in parallel pattern
+                #    i.e.) devices = ["gpu_cpu"] or ["cpu_gpu"]
+                parallel_devices = device.split('_')
+                if len(parallel_devices) != 2 or set(parallel_devices) != {"cpu", "gpu"}:
+                    msg = f"Unrecognized parallel devices={device}"
+                    raise RuntimeError(msg)
+
+                node0_name = nodeAttribute["TFNodes"][0].name
+                node1_name = nodeAttribute["TFNodes"][1].name
+
+                if "gpu" in node0_name:
+                    tf_name_gpu = node0_name
+                    tf_name_cpu = node1_name
+                else:
+                    tf_name_gpu = node1_name
+                    tf_name_cpu = node0_name
+                tf_spec_gpu = self._tf_spec_all[tf_name_gpu]
+                tf_spec_cpu = self._tf_spec_all[tf_name_cpu]
+
+                # check if it is a cpu/gpu **split** pattern
+                call_graph_gpu = _get_null_subroutine_calls(tf_spec_gpu)
+                call_graph_cpu = _get_null_subroutine_calls(tf_spec_cpu)
+                if call_graph_gpu == call_graph_cpu:
+                    # found cpu/gpu split pattern
+                    raise NotImplementedError("CPU/GPU split pattern is not implemented yet.")
+
+                # found cpu/gpu pattern
+                self._log.info(
+                    "Found CPU/GPU Action, {_tf_name_gpu} / {_tf_name_cpu}",
+                    _tf_name_gpu = tf_name_gpu,
+                    _tf_name_cpu = tf_name_cpu
+                )
+                tpl_name = "cg-tpl.execute_Milhoja_pushTile_CpuGpu.json"
+                tree = srctree.load(
+                    INTERNAL_TEMPLATE_PATH / tpl_name
+                )
+                tree["_param:orchestration_count"] = str(orch_cnt)
+                tree["_param:taskfunction_name_cpu"] = str(tf_name_cpu)
+                tree["_param:taskfunction_name_gpu"] = str(tf_name_gpu)
+                tree["_param:dataitem_name_cpu"] = _determine_dataitem_name(tf_spec_cpu)
+                tree["_param:dataitem_name_gpu"] = _determine_dataitem_name(tf_spec_gpu)
+                # link tree
+                pathInfo = self._stree.link(tree, linkPath=srctree.LINK_PATH_FROM_STACK)
+                # update links
+                linkKeyList = srctree.search_links(tree)
+                self._stree.pushLink(linkKeyList)
 
         elif len(devices) == 2:
-            raise NotImplementedError("CPU and GPU orchestration is not implemented yet")
+            if devices == ["gpu", "cpu"]:
+                # Found extGpuAction
+                tf_name_gpu = nodeAttribute["TFNodes"][0].name
+                tf_name_cpu = nodeAttribute["TFNodes"][1].name
+                tf_spec_gpu = self._tf_spec_all[tf_name_gpu]
+                tf_spec_cpu = self._tf_spec_all[tf_name_cpu]
+                self._log.info(
+                    "Found extended GPU Action, {_tf_name_gpu} then {_tf_name_cpu}",
+                    _tf_name_gpu = tf_name_gpu,
+                    _tf_name_cpu = tf_name_cpu
+                )
+                tpl_name = "cg-tpl.execute_Milhoja_pushTile_ExtGpu.json"
+                tree = srctree.load(
+                    INTERNAL_TEMPLATE_PATH / tpl_name
+                )
+                tree["_param:orchestration_count"] = str(orch_cnt)
+                tree["_param:taskfunction_name_cpu"] = str(tf_name_cpu)
+                tree["_param:taskfunction_name_gpu"] = str(tf_name_gpu)
+                tree["_param:dataitem_name_cpu"] = _determine_dataitem_name(tf_spec_cpu)
+                tree["_param:dataitem_name_gpu"] = _determine_dataitem_name(tf_spec_gpu)
+                # link tree
+                pathInfo = self._stree.link(tree, linkPath=srctree.LINK_PATH_FROM_STACK)
+                # update links
+                linkKeyList = srctree.search_links(tree)
+                self._stree.pushLink(linkKeyList)
+            else:
+                raise NotImplementedError("CPU then GPU orchestration (ExtCpu?) is not implemented")
+        else:
+            raise NotImplementedError("Three devices?")
 
         return CtrRet.SUCCESS
 

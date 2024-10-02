@@ -22,7 +22,9 @@ from ._controller import (
 
 ## DEV
 from ._controller_ta import (
-    Ctr_InitSubRootNode,
+    Ctr_InitTAGraph,
+    Ctr_InitTANode,
+    Ctr_InitTAMultiEdge,
 )
 
 from ..nodes import (
@@ -145,6 +147,11 @@ class TimeStepRecipe(ControlFlowGraph):
         begin_node_obj = self.G.nodes[begin_node]["obj"]   #TODO: cgkit.BaseGraphNetworkX.getNodeAttribute?
         node = OrchestrationEndNode(begin_node_obj)
         handle = self.linkNode(node)(after)
+
+        # set node attribute for begin and end orchestration nodes
+        self.setNodeAttribute(begin_node, "endNodeID", handle)
+        self.setNodeAttribute(handle, "beginNodeID", begin_node)
+        # set attribute for orchestration end
         self.setNodeAttribute(handle, ORCHESTRATION_KEY, "end")
 
         self._log.info("end orchestration of node {_node}", _node=begin_node)
@@ -284,15 +291,22 @@ class TimeStepRecipe(ControlFlowGraph):
         # determine taskfunction data
         ctrParseTFGraph = Ctr_ParseTFGraph()
         ctrParseTFNode = Ctr_ParseTFNode(ctrParseTFGraph)
-        ctrParseTFMultiedge = Ctr_ParseTFMultiEdge(ctrParseTFGraph)
+        ctrParseTFMultiEdge = Ctr_ParseTFMultiEdge(ctrParseTFGraph)
         h.traverseHierarchy(
             controllerGraph=ctrParseTFGraph,
             controllerNode=ctrParseTFNode,
-            controllerMultiEdge=ctrParseTFMultiedge
+            controllerMultiEdge=ctrParseTFMultiEdge
         )
         tf_data_all = list(ctrParseTFGraph.getAllTFData())
 
-        h.traverse(controllerNode=Ctr_InitSubRootNode())
+        ctrInitTAGraph = Ctr_InitTAGraph()
+        ctrInitTANode = Ctr_InitTANode(ctrInitTAGraph)
+        ctrInitTAMultiEdge = Ctr_InitTAMultiEdge(ctrInitTAGraph)
+        h.traverse(
+            controllerGraph=ctrInitTAGraph,
+            controllerNode=ctrInitTANode,
+            controllerMultiEdge=ctrInitTAMultiEdge
+        )
 
         ir = TimeStepIR()
         ir.flowGraph  = h

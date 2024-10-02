@@ -256,7 +256,7 @@ class Ctr_ParseTFGraph(AbstractControllerGraph):
         self._log.info("exiting subgraph level={level}", level=graph.level)
         # push call graph to TFspec
         if graph.level > 0 and graph.leaf:    # TODO: need to know why this is needed
-            self.getCurrentTF()["subroutine_call_graph"] = list(self.call_graph)
+            self.getCurrentTF()["subroutine_call_graph"] = list(self.getCallGraph())
         return CtrRet.SUCCESS
 
     def getCurrentTF(self):
