@@ -1,5 +1,6 @@
 import json
 from loguru import logger
+from copy import deepcopy
 
 from cgkit.cflow.controller import (
     AbstractControllerNode,
@@ -22,6 +23,129 @@ from ..nodes import (
     OrchestrationEndNode,
     OrchestrationMarkerNode,
 )
+
+
+# Controllers for splitting devices form "cpu,gpu" node to "cpu" and "gpu" nodes
+class Ctr_SplitDeviceGraph(AbstractControllerGraph):
+    def __init__(self):
+        super().__init__(controllerType="modify")
+        self._log = logger
+        # mapping from original node to duplicated node
+        self.node_mapping = {}
+        # additional edges to be added
+        self.edges_to_add = []
+
+    def __call__(self, graph, graphAttribute):
+        return CtrRet.SUCCESS
+
+    def q(self, graph, graphAttribute):
+        # adding edges
+        for u, v, data in self.edges_to_add:
+            graph.addEdge(u, v, **data)
+        return CtrRet.SUCCESS
+
+class Ctr_SplitDeviceNode(AbstractControllerNode):
+    def __init__(self, ctrSplitDeviceGraph):
+        super().__init__(controllerType="modify")
+        self._log = logger
+        self._ctrSplitDeviceGraph = ctrSplitDeviceGraph
+
+    def __call__(self, graph, node, nodeAttributes):
+        nodeObj = nodeAttributes["obj"]
+        if isinstance(nodeObj, WorkNode):
+            devices = nodeAttributes["device"]
+            devices = [device.strip() for device in nodeAttributes["device"].split(',')]
+            if len(devices) == 2:
+                # assume the first device remains with the original node
+                graph.setNodeAttribute(node, DEVICE_KEY, devices[0])
+                self._ctrSplitDeviceGraph.node_mapping[node] = []
+
+                # copy node
+                newNodeDevice = devices[1]
+                newNodeObj = deepcopy(nodeObj)
+                newNodeHandle = graph.addNode(newNodeObj)
+                # copy nodeAttributes
+                for attr_key, attr_value in nodeAttributes.items():
+                    graph.setNodeAttribute(newNodeHandle, attr_key, attr_value)
+                graph.setNodeAttribute(newNodeHandle, DEVICE_KEY, newNodeDevice)
+                self._ctrSplitDeviceGraph.node_mapping[node].append(newNodeHandle)
+                self._log.info(
+                    "Duplicated node {_node} to {_handle} with device={_device}",
+                    _node = node,
+                    _handle = newNodeHandle,
+                    _device = newNodeDevice,
+                )
+            elif len(devices) > 2:
+                raise NotImplementedError("Three devices case is not supported")
+
+        return CtrRet.SUCCESS
+
+class Ctr_SplitDeviceEdge(AbstractControllerEdge):
+    def __init__(self, ctrSplitDeviceGraph):
+        super().__init__(controllerType="modify")
+        self._log = logger
+        self._ctrSplitDeviceGraph = ctrSplitDeviceGraph
+
+    def __call__(self, graph, srcNode, srcAttribute, trgNode, trgAttribute, edgeAttribute):
+        # Retain the original edge
+        # Determine if source and/or target nodes are duplicated
+        src_duplicated = srcNode in self._ctrSplitDeviceGraph.node_mapping
+        trg_duplicated = trgNode in self._ctrSplitDeviceGraph.node_mapping
+
+        # Case 1: Only target is duplicated
+        if trg_duplicated and not src_duplicated:
+            for duplicated_trg in self._ctrSplitDeviceGraph.node_mapping[trgNode]:
+                # Preserve edge attributes by deepcopying
+                new_edge_attr = deepcopy(edgeAttribute)
+                self._ctrSplitDeviceGraph.edges_to_add.append(
+                    (srcNode, duplicated_trg, new_edge_attr)
+                )
+                self._log.info(
+                    "Target node ({_trgNode}) is duplicate. " +
+                    "Prepared to add edge ({_srcNode}, {_duplicated_trg})",
+                    _trgNode = trgNode,
+                    _srcNode = srcNode,
+                    _duplicated_trg = duplicated_trg,
+                )
+
+        # Case 2: Only source is duplicated
+        if src_duplicated and not trg_duplicated:
+            for duplicated_src in self._ctrSplitDeviceGraph.node_mapping[srcNode]:
+                new_edge_attr = deepcopy(edgeAttribute)
+                # NOTE: if only the source is duplicated, the edge between srcNode -- trgNode
+                #       must be preserved
+                edgeAttribute[KEEP_KEY] = True
+                self._ctrSplitDeviceGraph.edges_to_add.append(
+                    (duplicated_src, trgNode, new_edge_attr)
+                )
+                self._log.info(
+                    "Source node ({_srcNode}) is duplicated. " +
+                    "Prepared to add edge ({_duplicated_src}, {_trgNode})",
+                    _srcNode = srcNode,
+                    _trgNode = trgNode,
+                    _duplicated_src = duplicated_src,
+                )
+
+        # Case 3: Both source and target are duplicated
+        if src_duplicated and trg_duplicated:
+            for duplicated_src in self._ctrSplitDeviceGraph.node_mapping[srcNode]:
+                for duplicated_trg in self._ctrSplitDeviceGraph.node_mapping[trgNode]:
+                    new_edge_attr = deepcopy(edgeAttribute)
+                    self._ctrSplitDeviceGraph.edges_to_add.append(
+                        (duplicated_src, duplicated_trg, new_edge_attr)
+                    )
+                    self._log.info(
+                        "Both the source ({_srcNode}) and target ({_trgNode} " +
+                        "nodes are duplicated. " +
+                        "Prepared to add edge ({_duplicated_src}, {_duplicated_trg})",
+                        _srcNode = srcNode,
+                        _trgNode = trgNode,
+                        _duplicated_src = duplicated_src,
+                        _duplicated_trg = duplicated_trg,
+                    )
+
+        return CtrRet.SUCCESS
+
 
 
 class Ctr_InitNodeFromOpspec(AbstractControllerNode):

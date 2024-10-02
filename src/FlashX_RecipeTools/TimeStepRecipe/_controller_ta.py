@@ -533,7 +533,7 @@ class Ctr_TAParseNode(AbstractControllerNode):
                 linkKeyList = srctree.search_links(tree)
                 self._stree.pushLink(linkKeyList)
             else:
-                raise NotImplementedError("CPU then GPU orchestration (ExtCpu?) is not implemented")
+                raise NotImplementedError(f"{devices} pattern is not implemented")
         else:
             raise NotImplementedError("Three devices?")
 

@@ -10,6 +10,9 @@ from pathlib import Path
 from .TimeStepIR import TimeStepIR
 
 from ._controller import (
+    Ctr_SplitDeviceGraph,
+    Ctr_SplitDeviceNode,
+    Ctr_SplitDeviceEdge,
     Ctr_InitNodeFromOpspec,
     Ctr_SetupEdge,
     Ctr_MarkEdgeAsKeep,
@@ -274,6 +277,21 @@ class TimeStepRecipe(ControlFlowGraph):
 
         # collect and generate operation specs
         self._collect_operation_specs()
+
+        # spliting device=gpu,cpu nodes
+        ctrSplitDeviceGraph = Ctr_SplitDeviceGraph()
+        ctrSplitDeviceNode = Ctr_SplitDeviceNode(ctrSplitDeviceGraph)
+        ctrSplitDeviceEdge = Ctr_SplitDeviceEdge(ctrSplitDeviceGraph)
+        # duplicate node, prepare to adding edges
+        self.traverse(
+            controllerGraph = ctrSplitDeviceGraph,
+            controllerNode = ctrSplitDeviceNode,
+        )
+        # actually adding adges
+        self.traverse(
+            controllerGraph = ctrSplitDeviceGraph,
+            controllerEdge = ctrSplitDeviceEdge,
+        )
 
         # gather argument list of each work nodes
         self.traverse(controllerNode=Ctr_InitNodeFromOpspec())
