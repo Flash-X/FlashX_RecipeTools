@@ -148,6 +148,23 @@ class Ctr_SplitDeviceEdge(AbstractControllerEdge):
         return CtrRet.SUCCESS
 
 
+class Ctr_ModifySubroutineNames(AbstractControllerNode):
+    """
+    Modify a WorkNode.name to name_device
+    """
+    def __init__(self):
+        super().__init__(controllerType="modify")
+        self._log = logger
+
+    def __call__(self, graph, node, nodeAttributes):
+        nodeObj = nodeAttributes["obj"]
+        if isinstance(nodeObj, WorkNode):
+            name = deepcopy(nodeObj.name)
+            device = nodeAttributes[DEVICE_KEY]
+            if device.lower() != "cpu":
+                nodeObj.name = name + "_" + device.upper()
+        return CtrRet.SUCCESS
+
 
 class Ctr_InitNodeFromOpspec(AbstractControllerNode):
     def __init__(self):
