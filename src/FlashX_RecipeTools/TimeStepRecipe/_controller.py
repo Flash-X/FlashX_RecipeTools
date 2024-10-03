@@ -67,6 +67,7 @@ class Ctr_SplitDeviceNode(AbstractControllerNode):
                 # copy nodeAttributes
                 for attr_key, attr_value in nodeAttributes.items():
                     graph.setNodeAttribute(newNodeHandle, attr_key, attr_value)
+                graph.setNodeAttribute(newNodeHandle, "obj", newNodeObj)
                 graph.setNodeAttribute(newNodeHandle, DEVICE_KEY, newNodeDevice)
                 self._ctrSplitDeviceGraph.node_mapping[node].append(newNodeHandle)
                 self._log.info(
