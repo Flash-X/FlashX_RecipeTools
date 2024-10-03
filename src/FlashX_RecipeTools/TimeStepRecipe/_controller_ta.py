@@ -483,18 +483,26 @@ class Ctr_TAParseNode(AbstractControllerNode):
                 call_graph_cpu = _get_null_subroutine_calls(tf_spec_cpu)
                 if call_graph_gpu == call_graph_cpu:
                     # found cpu/gpu split pattern
-                    raise NotImplementedError("CPU/GPU split pattern is not implemented yet.")
-
-                # found cpu/gpu pattern
-                self._log.info(
-                    "Found CPU/GPU Action, {_tf_name_gpu} / {_tf_name_cpu}",
-                    _tf_name_gpu = tf_name_gpu,
-                    _tf_name_cpu = tf_name_cpu
-                )
-                tpl_name = "cg-tpl.execute_Milhoja_pushTile_CpuGpu.json"
-                tree = srctree.load(
-                    INTERNAL_TEMPLATE_PATH / tpl_name
-                )
+                    self._log.info(
+                        "Found CPU/GPU Split Action, {_tf_name_gpu} / {_tf_name_cpu}",
+                        _tf_name_gpu = tf_name_gpu,
+                        _tf_name_cpu = tf_name_cpu
+                    )
+                    tpl_name = "cg-tpl.execute_Milhoja_pushTile_CpuGpuSplit.json"
+                    tree = srctree.load(
+                        INTERNAL_TEMPLATE_PATH / tpl_name
+                    )
+                else:
+                    # found cpu/gpu pattern
+                    self._log.info(
+                        "Found CPU/GPU Action, {_tf_name_gpu} / {_tf_name_cpu}",
+                        _tf_name_gpu = tf_name_gpu,
+                        _tf_name_cpu = tf_name_cpu
+                    )
+                    tpl_name = "cg-tpl.execute_Milhoja_pushTile_CpuGpu.json"
+                    tree = srctree.load(
+                        INTERNAL_TEMPLATE_PATH / tpl_name
+                    )
                 tree["_param:orchestration_count"] = str(orch_cnt)
                 tree["_param:taskfunction_name_cpu"] = str(tf_name_cpu)
                 tree["_param:taskfunction_name_gpu"] = str(tf_name_gpu)
