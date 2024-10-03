@@ -10,7 +10,8 @@
       "                                   Orchestration_pushTileToCpuGpuSplitPipeline, &",
       "                                   Orchestration_teardownPipelineForCpuGpuSplitTasks",
       "use Orchestration_data, ONLY: or_nThreads_${orchestration_count}, &",
-      "                              or_nTilesPerPacket_${orchestration_count}"
+      "                              or_nTilesPerPacket_${orchestration_count}, &",
+      "                              or_nTilesPerCpuTurn_${orchestration_count}"
     ]
   },
   "_connector:execute": {
