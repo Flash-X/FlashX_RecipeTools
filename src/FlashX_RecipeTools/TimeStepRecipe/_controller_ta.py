@@ -540,6 +540,51 @@ class Ctr_TAParseNode(AbstractControllerNode):
                 # update links
                 linkKeyList = srctree.search_links(tree)
                 self._stree.pushLink(linkKeyList)
+            if devices == ["cpu_gpu", "cpu"] or devices == ["gpu_cpu", "cpu"]:
+                parallel_devices = devices[0].split('_')
+                node0_name = nodeAttribute["TFNodes"][0].name
+                node1_name = nodeAttribute["TFNodes"][1].name
+                node2_name = nodeAttribute["TFNodes"][2].name
+
+                if "gpu" in node0_name:
+                    split_tf_name_gpu = node0_name
+                    split_tf_name_cpu = node1_name
+                else:
+                    split_tf_name_gpu = node1_name
+                    split_tf_name_cpu = node0_name
+                split_tf_spec_gpu = self._tf_spec_all[split_tf_name_gpu]
+                split_tf_spec_cpu = self._tf_spec_all[split_tf_name_cpu]
+                # check if it is a cpu/gpu **split** pattern
+                split_call_graph_gpu = _get_null_subroutine_calls(split_tf_spec_gpu)
+                split_call_graph_cpu = _get_null_subroutine_calls(split_tf_spec_cpu)
+
+                assert split_call_graph_cpu == split_call_graph_gpu
+
+                post_tf_name_cpu = node2_name
+                post_tf_spec_cpu = self._tf_spec_all[post_tf_name_cpu]
+
+                self._log.info(
+                    "Found Ext CPU/GPU Split Action, ({_tf_name_gpu} / {_tf_name_cpu}) => {_post_tf_name}",
+                    _tf_name_gpu = split_tf_name_gpu,
+                    _tf_name_cpu = split_tf_name_cpu,
+                    _post_tf_name = post_tf_name_cpu,
+                )
+                tpl_name = "cg-tpl.execute_Milhoja_pushTile_ExtCpuGpuSplit.json"
+                tree = srctree.load(
+                    INTERNAL_TEMPLATE_PATH / tpl_name
+                )
+                tree["_param:orchestration_count"] = str(orch_cnt)
+                tree["_param:split_taskfunction_name_cpu"] = str(split_tf_name_cpu)
+                tree["_param:split_taskfunction_name_gpu"] = str(split_tf_name_gpu)
+                tree["_param:post_taskfunction_name_cpu"] = str(post_tf_name_cpu)
+                tree["_param:split_dataitem_name_cpu"] = _determine_dataitem_name(split_tf_spec_cpu)
+                tree["_param:split_dataitem_name_gpu"] = _determine_dataitem_name(split_tf_spec_gpu)
+                tree["_param:post_dataitem_name_cpu"] = _determine_dataitem_name(post_tf_spec_cpu)
+                # link tree
+                pathInfo = self._stree.link(tree, linkPath=srctree.LINK_PATH_FROM_STACK)
+                # update links
+                linkKeyList = srctree.search_links(tree)
+                self._stree.pushLink(linkKeyList)
             else:
                 raise NotImplementedError(f"{devices} pattern is not implemented")
         else:
