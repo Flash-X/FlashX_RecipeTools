@@ -540,7 +540,7 @@ class Ctr_TAParseNode(AbstractControllerNode):
                 # update links
                 linkKeyList = srctree.search_links(tree)
                 self._stree.pushLink(linkKeyList)
-            if devices == ["cpu_gpu", "cpu"] or devices == ["gpu_cpu", "cpu"]:
+            elif devices == ["cpu_gpu", "cpu"] or devices == ["gpu_cpu", "cpu"]:
                 parallel_devices = devices[0].split('_')
                 node0_name = nodeAttribute["TFNodes"][0].name
                 node1_name = nodeAttribute["TFNodes"][1].name
