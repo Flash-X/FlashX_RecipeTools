@@ -1,6 +1,9 @@
 
 !<_connector:use_interface>
-use Grid_interface, ONLY: Grid_zeroFluxData
+use Grid_interface, ONLY: Grid_zeroFluxData, &
+                          Grid_getCellVolumes, &
+                          Grid_getCellFaceAreas, &
+                          Grid_getCellCoords
 use Hydro_data, ONLY: hy_fluxCorrect, &
                       hy_geometry, &
                       hy_smallE, &
@@ -10,11 +13,11 @@ use hy_rk_interface, ONLY: hy_rk_correctFluxes
 
 
 !<_connector:var_definition>
+integer :: level
 real, pointer, dimension(:,:,:,:) :: fluxBufX, fluxBufY, fluxBufZ
-real, dimension(GRID_ILO:GRID_IHI,GRID_JLO:GRID_JHI,GRID_KLO:GRID_KHI) :: fareaX, fareaY, fareaZ
-real, dimension(GRID_ILO:GRID_IHI,GRID_JLO:GRID_JHI,GRID_KLO:GRID_KHI) :: cvol
-real, dimension(GRID_ILO:GRID_IHI) :: xCenter, xLeft, xRight
-real, dimension(GRID_JLO:GRID_JHI) :: yLeft, yRight
+real, dimension(:, :, :), allocatable :: cvol, fareaX, fareaY, fareaZ
+real, dimension(:), allocatable :: xCenter, xLeft, xRight
+real, dimension(:), allocatable :: yLeft, yRight
 
 
 
@@ -69,6 +72,9 @@ if (hy_fluxCorrect) then
       grownLimits(:, :) = tileDesc%grownLimits
       lo(:) = blkLimits(LOW, :)
       loGC(:) = blkLimitsGC(LOW, :)
+      hi(:) = blkLimits(HIGH, :)
+      hiGC(:) = blkLimitsGC(HIGH, :)
+      level = tileDesc%level
       call tileDesc%deltas(deltas)
       call tileDesc%getDataPtr(Uin, CENTER)
       call tileDesc%getDataPtr(fluxBufX, FLUXX)
@@ -85,8 +91,33 @@ if (hy_fluxCorrect) then
       )
 
       if (hy_geometry /= CARTESIAN) then
-         !TODO: implement this
-         call Driver_abort("[TimeAdvance] NotImplemented: Flux correction with curvilinear geometry")
+         allocate( cvol(loGC(IAXIS):hiGC(IAXIS), &
+                        loGC(JAXIS):hiGC(JAXIS), &
+                        loGC(KAXIS):hiGC(KAXIS)) )
+         allocate( fareaX(loGC(IAXIS):hiGC(IAXIS), &
+                          loGC(JAXIS):hiGC(JAXIS), &
+                          loGC(KAXIS):hiGC(KAXIS)) )
+         allocate( fareaY(loGC(IAXIS):hiGC(IAXIS), &
+                          loGC(JAXIS):hiGC(JAXIS), &
+                          loGC(KAXIS):hiGC(KAXIS)) )
+         allocate( fareaZ(loGC(IAXIS):hiGC(IAXIS), &
+                          loGC(JAXIS):hiGC(JAXIS), &
+                          loGC(KAXIS):hiGC(KAXIS)) )
+         allocate( xCenter(loGC(IAXIS):hiGC(IAXIS)) )
+         allocate( xLeft(loGC(IAXIS):hiGC(IAXIS)) )
+         allocate( xRight(loGC(IAXIS):hiGC(IAXIS)) )
+         allocate( yLeft(loGC(JAXIS):hiGC(JAXIS)) )
+         allocate( yRight(loGC(JAXIS):hiGC(JAXIS)) )
+
+         call Grid_getCellVolumes(level, loGC, hiGC, cvol)
+         call Grid_getCellFaceAreas(IAXIS, level, loGC, hiGC, fareaX)
+         call Grid_getCellFaceAreas(JAXIS, level, loGC, hiGC, fareaY)
+         call Grid_getCellFaceAreas(KAXIS, level, loGC, hiGC, fareaZ)
+         call Grid_getCellCoords(IAXIS, CENTER, level, loGC, hiGC, xCenter)
+         call Grid_getCellCoords(IAXIS, LEFT_EDGE, level, loGC, hiGC, xLeft)
+         call Grid_getCellCoords(IAXIS, RIGHT_EDGE, level, loGC, hiGC, xRight)
+         call Grid_getCellCoords(JAXIS, LEFT_EDGE, level, loGC, hiGC, yLeft)
+         call Grid_getCellCoords(JAXIS, RIGHT_EDGE, level, loGC, hiGC, yRight)
       end if
 
       call hy_rk_correctFluxes( &
@@ -103,6 +134,19 @@ if (hy_fluxCorrect) then
       call tileDesc%releaseDataPtr(fluxBufY, FLUXY)
       call tileDesc%releaseDataPtr(fluxBufZ, FLUXZ)
       call tileDesc%releaseDataPtr(Uin, CENTER)
+
+      if (hy_geometry /= CARTESIAN) then
+         deallocate(cvol)
+         deallocate(fareaX)
+         deallocate(fareaY)
+         deallocate(fareaZ)
+         deallocate(xCenter)
+         deallocate(xLeft)
+         deallocate(xRight)
+         deallocate(yLeft)
+         deallocate(yRight)
+      end if
+
       call itor%next()
    end do !!block loop
    call Grid_releaseTileIterator(itor)
