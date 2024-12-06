@@ -348,7 +348,7 @@ class TimeStepIR:
             subprocess.run(
                 ["make", "-C", str(self.objdir), "Makefile.Depend"],
                 check=True,
-                stdout=subprocess.DEVNULL,  # suppress stdout
+                stdin=subprocess.DEVNULL,   # suppress stdin
                 stderr=subprocess.PIPE      # capture stderr
             )
         except subprocess.CalledProcessError as e:
