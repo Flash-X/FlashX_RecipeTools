@@ -1,0 +1,69 @@
+{
+  "_param:orchestration_count": "",
+  "_param:split_taskfunction_name_cpu": "",
+  "_param:split_taskfunction_name_gpu": "",
+  "_param:post_taskfunction_name_cpu": "",
+  "_param:split_dataitem_name_cpu": "",
+  "_param:split_dataitem_name_gpu": "",
+  "_param:post_dataitem_name_cpu": "",
+  "_connector:use_interface": {
+    "_code": [
+      "use Orchestration_interface, ONLY: Orchestration_setupPipelineForExtCpuGpuSplitTasks, &",
+      "                                   Orchestration_pushTileToExtCpuGpuSplitPipeline, &",
+      "                                   Orchestration_teardownPipelineForExtCpuGpuSplitTasks",
+      "use Orchestration_data, ONLY: or_nThreads_${orchestration_count}, &",
+      "                              or_nTilesPerPacket_${orchestration_count}, &",
+      "                              or_nTilesPerCpuTurn_${orchestration_count}"
+    ]
+  },
+  "_connector:execute": {
+    "_code": [
+      {
+        "_link:init_dataitem": []
+      },
+      "",
+      "call Timers_start(\"Milhoja ExtCpuGpuSplit\")",
+      "call Orchestration_setupPipelineForExtCpuGpuSplitTasks( &",
+      "   MH_tileTaskFunction=${split_taskfunction_name_cpu}_Cpp2C, &",
+      "   MH_pktTaskFunction=${split_taskfunction_name_gpu}_Cpp2C, &",
+      "   MH_postTileTaskFunction=${post_taskfunction_name_cpu}_Cpp2C, &",
+      "   nThreads=or_nThreads_${orchestration_count}, &",
+      "   nTilesPerPacket=or_nTilesPerPacket_${orchestration_count}, &",
+      "   nTilesPerCpuTurn=or_nTilesPerCpuTurn_${orchestration_count}, &",
+      "   MH_pktProto_Cptr=${split_dataitem_name_gpu}, &",
+      "   MH_tileProto_Cptr=${split_dataitem_name_cpu}, &",
+      "   MH_postTileProto_Cptr=${post_dataitem_name_cpu} &",
+      ")",
+      "call Grid_getTileIterator(itor, nodetype=LEAF)",
+      "do while(itor%isValid())",
+      "   call itor%currentTile(tileDesc)",
+      "   call tileDesc%fillTileCInfo(cInfo)",
+      "",
+      "   call Orchestration_pushTileToExtCpuGpuSplitPipeline( &",
+      "      tileProto_Cptr=${split_dataitem_name_cpu}, &",
+      "      pktProto_Cptr=${split_dataitem_name_gpu}, &",
+      "      postTileProto_Cptr=${post_dataitem_name_cpu}, &",
+      "      nThreads=or_nThreads_${orchestration_count}, &",
+      "      tileCInfo=cInfo &",
+      "   )",
+      "",
+      "   call itor%next()",
+      "end do",
+      "call Grid_releaseTileIterator(itor)",
+      "",
+      "call Orchestration_teardownPipelineForExtCpuGpuSplitTasks( &",
+      "   nThreads=or_nThreads_${orchestration_count}, &",
+      "   nTilesPerPacket=or_nTilesPerPacket_${orchestration_count} &",
+      ")",
+      "call Timers_stop(\"Milhoja ExtCpuGpuSplit\")",
+      "",
+      {
+        "_link:delete_dataitem": []
+      },
+      "",
+      "call milhoja_runtime_reset(MH_ierr)",
+      "call Orchestration_checkInternalError(\"TimeAdvance\", MH_ierr)"
+    ]
+  },
+  "_param:__type__": ".f90"
+}
