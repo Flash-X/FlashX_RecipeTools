@@ -5,6 +5,7 @@ authors = [
     {name = "Jared O’Neal", email = "joneal@anl.gov"},
     {name = "Johann Rudi", email = "work@johannrudi.com"},
     {name = "Wesley Kwiecinski", email = "wkwiecinski@anl.gov"},
+    {name = "Klaus Weide", email = "kweide@uchicago.edu"},
 ]
 description = "Recipe Tools for Flash-X"
 readme = "README.md"
@@ -17,7 +18,7 @@ dependencies = [
     "mako",
     "code-generation-toolkit",
     "fparser",
-    """milhoja@git+ssh://git@github.com/Flash-X/Milhoja.git@b51c6818762a98c79686983e0aadd1c68046e8d5#subdirectory=tools/milhoja_pypkg""",
+    """milhoja@git+ssh://git@github.com/Flash-X/Milhoja.git@73e1ea351b1b6a3c1619e2cb0a1a247124efada2#subdirectory=tools/milhoja_pypkg""",
 ]
 dynamic = ["version"]
 
