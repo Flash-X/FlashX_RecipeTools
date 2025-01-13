@@ -13,6 +13,7 @@ from ._controller import (
     Ctr_SplitDeviceGraph,
     Ctr_SplitDeviceNode,
     Ctr_SplitDeviceEdge,
+    Ctr_ModifySubroutineNames,
     Ctr_InitNodeFromOpspec,
     Ctr_SetupEdge,
     Ctr_MarkEdgeAsKeep,
@@ -292,6 +293,8 @@ class TimeStepRecipe(ControlFlowGraph):
             controllerGraph = ctrSplitDeviceGraph,
             controllerEdge = ctrSplitDeviceEdge,
         )
+
+        self.traverse(controllerNode=Ctr_ModifySubroutineNames())
 
         # gather argument list of each work nodes
         self.traverse(controllerNode=Ctr_InitNodeFromOpspec())

@@ -596,6 +596,9 @@ def generate_op_spec(name: str, interface_file, debug=False, call_cpp=False):
     # process file
     op_spec = __process_interface_file(name, interface_path, if_name, debug)
     __dump_to_json(op_spec, op_spec_path)
+    # delete generated TODO
+    if preproc_file is not None:
+        preproc_file.unlink()
     return op_spec_path
 
 
