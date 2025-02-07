@@ -390,6 +390,9 @@ def __process_subroutine_block(lines: List[str], common_definitions: dict, inter
                     for n in name_list:
                         data = subroutine_defs.get(n.lower(), None)
                         if not data:
+                            if ':' in n:
+                                warn("parse_tree: sub.items[2] is %s, n is %s" % (sub.items[2], n))
+                                continue
                             raise RuntimeError(f"Annotation variable & subroutine dummy arg mismatch ({n}).")
 
                         if 'name' in data:
