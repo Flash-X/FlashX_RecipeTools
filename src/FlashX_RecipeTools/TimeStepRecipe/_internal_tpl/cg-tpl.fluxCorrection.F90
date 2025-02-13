@@ -22,8 +22,8 @@ real, dimension(:), allocatable :: yLeft, yRight
 
 
 !<_connector:execute>
-
-
+!!****if* FlashX_RecipeTools/TimeStepRecipe/_internal_tpl/cg-tpl.fluxCorrection
+!!***
 ! flux correction for Spark with Milhoja
 if (hy_fluxCorrect) then
    call Grid_zeroFluxData()
