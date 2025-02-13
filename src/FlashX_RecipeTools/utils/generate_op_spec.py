@@ -309,6 +309,17 @@ def __process_annotation_line(line: str, debug: bool) -> Tuple[str, dict]:
         }
         del tokens["origin"]
 
+    if "value" in tokens:
+        if tokens["source"] != "verbatim":
+            msg = "Only verbatim is allowed to have value field."
+            raise ValueError(msg)
+        value_kind, value_proper = [w.strip() for w in tokens["value"].split(':',1)]
+        tokens["application_specific"] = {
+            "value": value_proper,
+            "kind": value_kind.lower(),
+        }
+        del tokens["value"]
+
     return name,tokens
 
 
