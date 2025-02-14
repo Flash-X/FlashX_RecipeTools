@@ -167,6 +167,18 @@ class TimeStepRecipe(ControlFlowGraph):
         #       so should not be included inside of Orchestration_begin/end nodes
         return self.add_tpl(INTERNAL_TEMPLATE_PATH / "cg-tpl.fluxCorrection.F90", after)
 
+    def add_guardcell_fill(self, comment:str, after:int):
+        # TODO: this node has global MPI communications internally,
+        #       so should not be included inside of Orchestration_begin/end nodes
+        self._log.info("Add guardcell_fill: {_comment}", _comment=comment)
+        return self.add_tpl(INTERNAL_TEMPLATE_PATH / "cg-tpl.guardcell_fill.F90", after)
+
+    def add_Eos_support(self, after:int):
+        # TODO: this node only adds support (by adding somoe mudule references, and
+        #       variables and their initializations), it does not add an 'execute' part.
+        self._log.info("Add Eos_support")
+        return self.add_tpl(INTERNAL_TEMPLATE_PATH / "cg-tpl.support_Eos.F90", after)
+
     def get_operation_spec(self, operation_name:str):
         assert operation_name in self.opspecs.keys(), (
             f"{operation_name} spec is not found in the given recipe"

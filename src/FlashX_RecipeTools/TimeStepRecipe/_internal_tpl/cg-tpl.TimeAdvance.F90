@@ -80,7 +80,7 @@ subroutine TimeAdvance(dt, dtold, time)
    !<_link:var_initialization>
 
 
-   call Grid_fillGuardCells(CENTER, ALLDIR, doEos=.true.)
+!!   call Grid_fillGuardCells(CENTER, ALLDIR, doEos=.true.) ! disabled - use cg-tpl.guardcell_fill.F90 instead (or not)
 
 
    !<_link:execute>
