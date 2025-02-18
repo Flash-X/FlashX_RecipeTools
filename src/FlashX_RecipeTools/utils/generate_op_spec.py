@@ -53,7 +53,7 @@ def evaluate_simple_expression(line: str) -> int:
             if op_stack:
                 while op_stack and op_stack[-1] != "(" and \
                 (ops[op_stack[-1]]["priority"] > ops[token]["priority"] or \
-                (ops[op_stack[-1]]["priority"] == ops[token]["side"] and \
+                (ops[op_stack[-1]]["priority"] == ops[token]["priority"] and \
                 ops[token]["side"] == 'L')):
                     out_queue.append(op_stack.pop())
             op_stack.append(token)
