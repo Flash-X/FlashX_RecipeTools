@@ -29,8 +29,7 @@ def evaluate_simple_expression(line: str) -> int:
     Can be optimized to reduce -- to + when tokens are parsed
     """
     # get all tokens in expression
-    tokens = re.findall(r'\*\*|[\+\-\*\\\(\)]|\d+', line)
-
+    tokens = re.findall(r'\*\*|[-+*/()]|\d+|n[xyz]b', line)
     # ensure that all tokens were found by comparing the size of the original
     # string with no spaces to the sum of all token sizes. If the sums are
     # different that means there's an invalid string inside of the extents
@@ -48,6 +47,9 @@ def evaluate_simple_expression(line: str) -> int:
     for token in tokens:
         if token.isdigit():
             out_queue.append(int(token))
+
+        elif token in {"nxb", "nyb", "nzb"}:
+            out_queue.append(token)
 
         elif token in ops:
             if op_stack:
@@ -77,18 +79,49 @@ def evaluate_simple_expression(line: str) -> int:
     i = 0
     replace = []
     while i < len(out_queue)-1:
-        if out_queue[i] == '-' and out_queue[i+1] == '-':
+        if out_queue[i] == 'neg' and out_queue[i+1] == '-':
             out_queue[i] = "+"
             del out_queue[i+1]
-        i += 1
+            i += 1
+        elif out_queue[i] == 'neg' and out_queue[i+1] == 'neg':
+            del out_queue[i:i+2]
+        elif out_queue[i+1] == 'pos':
+            del out_queue[i+1]
+        else:
+            i += 1
 
     running = []
     # next, evaluate the expression held by out_queue.
     for token in out_queue:
         if token in ops:
             op2 = running.pop()
-            op1 = running.pop()
-            running.append(ops[token]["function"](op1, op2))
+            if ops[token]["side"] == 'uR':
+                if isinstance(op2, int):
+                    running.append(ops[token]["function"](op2))
+                elif token == 'neg':
+                    running.append(f"(-{op2})")
+                elif token == 'pos':  # should not happen
+                    running.append(op2)
+                else:  # should definitely not happen
+                    running.append(op2)
+            else:
+                op1 = running.pop()
+                if isinstance(op1, int) and isinstance(op2, int):
+                    running.append(ops[token]["function"](op1, op2))
+                elif token == '+' and op1 == 0:
+                    running.append(op2)
+                elif token in {'+', '-'} and op2 == 0:
+                    running.append(op1)
+                elif token in {'*', '/'}  and op1 == 0:
+                    running.append(op1)
+                elif token == '*' and op2 == 0:
+                    running.append(op2)
+                elif token == '*' and op1 == 1:
+                    running.append(op2)
+                elif token in {'*', '/'} and op2 == 1:
+                    running.append(op1)
+                else:
+                    running.append(f"({op1}{token}{op2})")
         else:
             running.append(token)
 

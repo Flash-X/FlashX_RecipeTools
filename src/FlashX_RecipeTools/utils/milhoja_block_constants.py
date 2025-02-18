@@ -65,5 +65,15 @@ OPERATIONS = {
         "priority": 3,
         "side": 'R',
         "function": operator.pow
+    },
+    'pos': {
+        "priority": 1,
+        "side": 'uR',           # unary right
+        "function": operator.pos
+    },
+    'neg': {
+        "priority": 1,
+        "side": 'uR',
+        "function": operator.neg
     }
 }
