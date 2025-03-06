@@ -18,7 +18,7 @@ dependencies = [
     "mako",
     "code-generation-toolkit",
     "fparser",
-    """milhoja@git+ssh://git@github.com/Flash-X/Milhoja.git@df8070bd7727cf9608acbfeab2605215ff151398#subdirectory=tools/milhoja_pypkg""",
+    """milhoja@git+ssh://git@github.com/Flash-X/Milhoja.git@eb43135ee99ce3a92b573d734dc2d7d1acee64d8#subdirectory=tools/milhoja_pypkg""",
 ]
 dynamic = ["version"]
 
