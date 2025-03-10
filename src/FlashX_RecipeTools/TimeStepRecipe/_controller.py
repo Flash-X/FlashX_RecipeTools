@@ -281,8 +281,8 @@ class Ctr_GetAttributesForSubgraph(AbstractControllerNode):
 
         # get arguments of work nodes
         if isinstance(nodeAttribute["obj"], WorkNode):
-            assert nodeAttribute["obj"].name not in self.workArgs
-            self.workArgs[nodeAttribute["obj"].name] = nodeAttribute["obj"].args
+            assert (nodeAttribute["obj"].name not in self.workArgs or \
+                    self.workArgs[nodeAttribute["obj"].name] == nodeAttribute["obj"].args)
         return CtrRet.SUCCESS
 
     def getAllWorkNames(self):
