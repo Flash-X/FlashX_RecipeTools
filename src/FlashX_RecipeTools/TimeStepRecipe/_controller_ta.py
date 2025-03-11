@@ -652,7 +652,7 @@ class Ctr_TAParseNode(AbstractControllerNode):
             origin_varname = arg_spec["application_specific"]["varname"]
             argname_short = argname.replace("external_", "")
 
-            mh_var = "MH_" + argname_short
+            mh_var = "MHgpu_" + argname_short
             mh_def_line = _format_MHarg_def_codeline(argname_short, mh_var, argtype)
             mh_init_line = _format_MHarg_init_codeline(origin_varname, mh_var, argtype)
 
@@ -661,7 +661,8 @@ class Ctr_TAParseNode(AbstractControllerNode):
             self._ctrParseGraph.push_variable(mh_def_line)
 
             mh_external_vars.append(mh_var)
-            code_var_defs.append(mh_def_line)
+            if not mh_def_line in code_var_defs:
+                code_var_defs.append(mh_def_line)
             code_var_init.append(mh_init_line)
 
         # construct dataitem def
@@ -736,7 +737,8 @@ class Ctr_TAParseNode(AbstractControllerNode):
             self._ctrParseGraph.push_variable(mh_def_line)
 
             mh_external_vars.append(mh_var)
-            code_var_defs.append(mh_def_line)
+            if not mh_def_line in code_var_defs:
+                code_var_defs.append(mh_def_line)
             code_var_init.append(mh_init_line)
 
         # construct dataitem def
