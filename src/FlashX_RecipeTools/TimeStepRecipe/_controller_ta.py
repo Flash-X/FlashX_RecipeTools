@@ -20,6 +20,8 @@ from ..nodes import (
 from ..utils import TaskfunctionTemplateGenerator
 from ..constants import FLASHX_RECIPETOOLS_ROOT
 
+from milhoja.milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args, nxyzb_mod
+
 INTERNAL_TEMPLATE_PATH = FLASHX_RECIPETOOLS_ROOT / "TimeStepRecipe" / "_internal_tpl"
 
 
@@ -680,6 +682,10 @@ class Ctr_TAParseNode(AbstractControllerNode):
             line = ' '*3 + f"{var}, &"
             code_dataitem_init.append(line)
         code_dataitem_init.append(' '*3 + f"{dataitem_name} &")
+        if opts['nxyzt_args']:
+            for var in 'NXB', 'NYB', 'NZB':
+                line = ' '*3 + f", {var} &"
+                code_dataitem_init.append(line)
         code_dataitem_init.append(')')
         # check milhoja internal error
         code_dataitem_init.append(_milhoja_check_internal_error())
@@ -750,7 +756,17 @@ class Ctr_TAParseNode(AbstractControllerNode):
 
         # construct dataitem init
         code_dataitem_init = []
-        code_dataitem_init.append(f"MH_ierr = {tf_spec.acquire_scratch_C_function}()")
+        if opts['nxyzt_args']:
+            code_dataitem_init.append(f"""
+#if defined(FIXEDBLOCKSIZE) && !defined(FLASHX_TESTNOFBS)
+   MH_ierr = {tf_spec.acquire_scratch_C_function}()
+#else
+   MH_ierr = {tf_spec.acquire_scratch_C_function}(nxb,nyb,nzb)
+#endif
+"""
+            )
+        else:
+            code_dataitem_init.append(f"MH_ierr = {tf_spec.acquire_scratch_C_function}()")
         code_dataitem_init.append(_milhoja_check_internal_error())
         code_dataitem_init.append("")
 
@@ -759,6 +775,10 @@ class Ctr_TAParseNode(AbstractControllerNode):
         for var in mh_external_vars:
             line = ' '*3 + f"{var}, &"
             code_dataitem_init.append(line)
+        if opts['nxyzt_args']:
+            for var in 'nxb', 'nyb', 'nzb':
+                line = ' '*3 + f"{var}, &"
+                code_dataitem_init.append(line)
         code_dataitem_init.append(' '*3 + f"{dataitem_name} &")
         code_dataitem_init.append(')')
         # check milhoja internal error
@@ -784,6 +804,19 @@ class Ctr_TAParseNode(AbstractControllerNode):
         code_use_interface.append(' '*_use_indent + f"{tf_spec.delete_packet_C_function}, &")
         code_use_interface.append(' '*_use_indent + f"{tf_spec.acquire_scratch_C_function}, &")
         code_use_interface.append(' '*_use_indent + f"{tf_spec.release_scratch_C_function}")
+        if opts['nxyzt_args'] or opts['nxyzb_mod']:
+            code_use_interface.append(f"""
+#if defined(FIXEDBLOCKSIZE) && !defined(FLASHX_TESTNOFBS)
+#   define nxb NXB
+#   define nyb NYB
+#   define nzb NZB
+#else
+   use or_gridData, ONLY : nxb, nyb, nzb
+#endif
+"""
+            )
+        else:
+            pass
 
         # update taskfunction template
         tf_tpl.use_interface = code_use_interface
