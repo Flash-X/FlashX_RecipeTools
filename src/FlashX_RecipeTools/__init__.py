@@ -1,4 +1,4 @@
-__version__ = "0.1.2a1"
+__version__ = "0.1.2a2"
 
 from loguru import logger
 logger.disable(__name__)
