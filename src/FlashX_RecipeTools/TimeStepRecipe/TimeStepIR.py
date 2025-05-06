@@ -19,7 +19,7 @@ from ..utils import MakefileParser
 
 SUPPORTED = {
     "processor": ["gpu", "cpu"],
-    "computation_offloading": ["OpenACC"],
+    "computation_offloading": ["OpenACC", "OpenMP"],
     "data_type": ["DataPacket", "TileWrapper"],
 }
 

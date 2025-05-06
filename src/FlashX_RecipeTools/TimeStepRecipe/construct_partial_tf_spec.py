@@ -1,8 +1,10 @@
 #TODO: structure tfdata as an object
 
+from milhoja.milhoja_pypkg_opts import opts
+
 def construct_partial_tf_spec(tf_data) -> dict:
     """
-    Consruct partial TF spec from given TF (meta)data
+    Construct partial TF spec from given TF (meta)data
     """
     tf_name = tf_data["name"]
     processor = tf_data["processor"]
@@ -12,8 +14,8 @@ def construct_partial_tf_spec(tf_data) -> dict:
     offloading = ""
     if processor.lower() == "gpu":
         data_item = "DataPacket"
-        # TODO: openmp offload?
-        offloading = "OpenACC"
+        # Expected: "OpenACC" or "OpenMP"; maybe None?
+        offloading = opts['computation_offloading']
 
     partial_tf_spec = {
         "task_function": {
