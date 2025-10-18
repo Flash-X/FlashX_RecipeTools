@@ -189,6 +189,11 @@ class TimeStepIR:
         makefile = MakefileParser([objdir / "Makefile", objdir / "Makefile.h"])
         milhoja_path = makefile.expand_macro("MILHOJA_PATH")
 
+        if (milhoja_path[0:2] == '..' and
+            Path(objdir / milhoja_path).is_dir()):
+            self.milhoja_path = objdir / milhoja_path
+            return
+
         # if found string is a relative path,
         # assuming it is relative to makefile_site
         # TODO: this is only for test case

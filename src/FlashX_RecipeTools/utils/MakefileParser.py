@@ -17,8 +17,9 @@ class MakefileParser:
                 continue
             with open(path, 'r') as file:
                 for line in file:
-                    line = line.strip()
-                    if '=' in line and not line.startswith('#'):
+                    a = line.split('#', 1)
+                    line = a[0].strip()
+                    if '=' in line:
                         key, value = line.split('=', 1)
                         self.macros[key.strip()] = value.strip()
                         try:

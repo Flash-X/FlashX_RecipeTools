@@ -18,7 +18,7 @@ dependencies = [
     "mako",
     "code-generation-toolkit",
     "fparser",
-    "milhoja >= 0.2.2a4",
+    "milhoja >= 0.2.2a7",
 ]
 dynamic = ["version"]
 
