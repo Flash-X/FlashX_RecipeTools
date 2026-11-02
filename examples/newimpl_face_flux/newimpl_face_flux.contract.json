@@ -1,0 +1,293 @@
+{
+  "format": {
+    "name": "FlashX-ArithmeticHelper-Contract",
+    "version": "1.0.0"
+  },
+  "name": "newimpl_face_flux",
+  "sources": {
+    "arithmetic": {
+      "path": "hy_getFaceFlux.F90-mc",
+      "sha256": "6a7004ebec17770766e14c06794f5ff05541f889f24805e39fdd68af348b89e3"
+    },
+    "helpers": {
+      "path": "hydro_helpers.ini",
+      "sha256": "e748a03bc6530aa8ee68fa68cbf8cff8204db0e64958563ec53add9ce669cb1c"
+    },
+    "expander": {
+      "path": "macro_expand.py",
+      "sha256": "62669f29562b99322820a2db4cedbeeb9c53b2fcf8c0d2077edc0effc357b302"
+    }
+  },
+  "entrypoint": "hy_getFaceFlux",
+  "layout_symbols": [
+    "field_types",
+    "cell_ref",
+    "face_ref",
+    "flat_ref",
+    "allocate_cell",
+    "allocate_flux",
+    "release_cell",
+    "release_flux"
+  ],
+  "require_complete_helper_inventory": true,
+  "helper_interfaces": {
+    "hy_allocateCell": ["data", "nvar", "lo", "hi", "nblock"],
+    "hy_allocateFlux": ["data", "nvar", "lo", "hi", "ndim", "nblock"],
+    "hy_allocateWorkspace": ["work", "lo", "hi", "nblock"],
+    "hy_releaseWorkspace": ["work"],
+    "hy_loadHydroCell": ["data", "inputMap", "block", "i", "j", "k", "q"],
+    "hy_flatteningAtCell": ["data", "inputMap", "block", "i", "j", "k", "ndim", "params", "f", "status"],
+    "hy_computeFlattening": ["data", "inputMap", "block", "lo", "hi", "ndim", "params", "flat", "status"],
+    "hy_gatherStencil": ["data", "inputMap", "block", "i", "j", "k", "offset", "quantity", "stencil"],
+    "hy_wenoZCandidatesAndWeights": ["q", "epsilon", "cm", "cp", "wm", "wp"],
+    "hy_finishReconstruction": ["center", "f", "cm", "cp", "wm", "wp", "qm", "qp"],
+    "hy_reconstructDirection": ["data", "inputMap", "block", "lo", "hi", "offset", "flat", "params", "minus", "plus"],
+    "hy_assembleFaceStates": ["minus", "plus", "block", "i", "j", "k", "offset", "ql", "qr"],
+    "hy_repairHydroState": ["q", "params"],
+    "hy_estimateHydroWaveSpeeds": ["ql", "qr", "dir", "params", "sl", "sr", "speed", "vacuum", "status"],
+    "hy_primitiveToConservative": ["q", "u"],
+    "hy_hydroPhysicalFlux": ["q", "u", "dir", "f"],
+    "hy_computeHydroContact": ["ql", "qr", "dir", "sl", "sr", "contact", "pstar", "status"],
+    "hy_computeHydroStarState": ["q", "u", "dir", "bound", "contact", "pstar", "ustar", "status"],
+    "hy_selectHLLCFlux": ["ul", "ur", "usl", "usr", "fl", "fr", "sl", "sr", "contact", "f"],
+    "hy_selectHLLEFlux": ["ul", "ur", "fl", "fr", "sl", "sr", "f", "status"],
+    "hy_getFaceShock": ["data", "shockVariable", "block", "i", "j", "k", "offset", "inShock"],
+    "hy_viscosityCoefficient": ["ql", "qr", "dir", "coefficient", "nu"],
+    "hy_addFaceViscosity": ["data", "inputMap", "block", "i", "j", "k", "offset", "dir", "coefficient", "f"],
+    "hy_emitFaceFlux": ["flux", "outputMap", "block", "dir", "i", "j", "k", "f"]
+  },
+  "data_objects": {
+    "state": {
+      "kind": "field",
+      "role": "input",
+      "components": ["density", "velocity_x", "velocity_y", "velocity_z", "pressure", "gamma", "specific_internal_energy", "optional_shock_marker"],
+      "access": [
+        {
+          "mode": "read",
+          "region": "lo-3*active_unit:hi+3*active_unit"
+        },
+        {
+          "mode": "read",
+          "region": "two_cells_adjacent_to_face",
+          "condition": "parameters.hybrid and parameters.shock_marker_present"
+        }
+      ]
+    },
+    "face_flux": {
+      "kind": "field",
+      "role": "output",
+      "components": ["mass", "momentum_x", "momentum_y", "momentum_z", "total_energy"],
+      "access": [
+        {
+          "mode": "write",
+          "region": "lo:hi+unit(direction)"
+        }
+      ]
+    },
+    "input_map": {
+      "kind": "parameter",
+      "role": "binding",
+      "shape": "7",
+      "access": [
+        {
+          "mode": "read",
+          "region": "invocation"
+        }
+      ]
+    },
+    "output_map": {
+      "kind": "parameter",
+      "role": "binding",
+      "shape": "5",
+      "access": [
+        {
+          "mode": "read",
+          "region": "invocation"
+        }
+      ]
+    },
+    "parameters": {
+      "kind": "parameter",
+      "role": "configuration",
+      "access": [
+        {
+          "mode": "read",
+          "region": "invocation"
+        }
+      ]
+    },
+    "flattening": {
+      "kind": "scratch",
+      "role": "intermediate",
+      "shape": "one_scalar_per_workspace_cell",
+      "lifetime": "face_flux_stage",
+      "producer": "compute_flattening",
+      "consumers": ["reconstruct_direction"],
+      "access": [
+        {
+          "mode": "write",
+          "region": "lo-active_unit:hi+active_unit"
+        },
+        {
+          "mode": "read",
+          "region": "lo-unit(direction):hi+unit(direction)"
+        }
+      ]
+    },
+    "reconstructed_minus": {
+      "kind": "scratch",
+      "role": "intermediate",
+      "shape": "seven_values_per_workspace_cell",
+      "lifetime": "one_direction",
+      "producer": "reconstruct_direction",
+      "consumers": ["solve_faces"],
+      "access": [
+        {
+          "mode": "write",
+          "region": "lo-unit(direction):hi+unit(direction)"
+        },
+        {
+          "mode": "read",
+          "region": "two_cells_adjacent_to_face"
+        }
+      ]
+    },
+    "reconstructed_plus": {
+      "kind": "scratch",
+      "role": "intermediate",
+      "shape": "seven_values_per_workspace_cell",
+      "lifetime": "one_direction",
+      "producer": "reconstruct_direction",
+      "consumers": ["solve_faces"],
+      "access": [
+        {
+          "mode": "write",
+          "region": "lo-unit(direction):hi+unit(direction)"
+        },
+        {
+          "mode": "read",
+          "region": "two_cells_adjacent_to_face"
+        }
+      ]
+    },
+    "max_speed": {
+      "kind": "scalar",
+      "role": "output_reduction",
+      "access": [
+        {
+          "mode": "reduction",
+          "region": "all_faces"
+        }
+      ]
+    },
+    "status": {
+      "kind": "scalar",
+      "role": "output_status",
+      "access": [
+        {
+          "mode": "write",
+          "region": "invocation"
+        }
+      ]
+    },
+    "failed_face": {
+      "kind": "diagnostic",
+      "role": "output_diagnostic",
+      "shape": "4",
+      "access": [
+        {
+          "mode": "diagnostic",
+          "region": "invocation"
+        }
+      ]
+    }
+  },
+  "operations": [
+    {
+      "name": "compute_flattening",
+      "domain": "lo-active_unit:hi+active_unit",
+      "helpers": ["hy_computeFlattening"],
+      "reads": ["state", "input_map", "parameters"],
+      "writes": ["flattening", "status"],
+      "depends_on": [],
+      "ordering": "fixed"
+    },
+    {
+      "name": "reconstruct_direction",
+      "domain": "for direction=1:ndim over lo-unit(direction):hi+unit(direction)",
+      "helpers": ["hy_reconstructDirection"],
+      "reads": ["state", "input_map", "parameters", "flattening"],
+      "writes": ["reconstructed_minus", "reconstructed_plus"],
+      "depends_on": ["compute_flattening"],
+      "private_scratch": ["stencil_5", "weno_candidates", "weno_weights"],
+      "ordering": "fixed"
+    },
+    {
+      "name": "solve_faces",
+      "domain": "for direction=1:ndim over lo:hi+unit(direction)",
+      "helpers": [
+        "hy_assembleFaceStates",
+        "hy_repairHydroState",
+        "hy_estimateHydroWaveSpeeds",
+        "hy_primitiveToConservative",
+        "hy_hydroPhysicalFlux",
+        "hy_getFaceShock",
+        "hy_selectHLLEFlux",
+        "hy_computeHydroContact",
+        "hy_computeHydroStarState",
+        "hy_selectHLLCFlux",
+        "hy_addFaceViscosity",
+        "hy_emitFaceFlux"
+      ],
+      "reads": ["state", "input_map", "output_map", "parameters", "reconstructed_minus", "reconstructed_plus"],
+      "writes": ["face_flux", "max_speed", "status", "failed_face"],
+      "depends_on": ["reconstruct_direction"],
+      "private_scratch": ["primitive_left", "primitive_right", "conservative_left", "conservative_right", "physical_flux_left", "physical_flux_right", "star_state_left", "star_state_right", "face_flux_vector"],
+      "ordering": "fixed_branching_sequence_from_arithmetic_source"
+    }
+  ],
+  "synchronization": [
+    {
+      "after": "compute_flattening",
+      "before": "reconstruct_direction",
+      "relation": "direct_dependency",
+      "scope": "stage",
+      "reason": "flattening must be complete before any directional reconstruction"
+    },
+    {
+      "after": "reconstruct_direction",
+      "before": "solve_faces",
+      "relation": "direct_dependency",
+      "scope": "direction",
+      "reason": "all reconstructed states for a direction must exist before its face solve"
+    },
+    {
+      "after": "solve_faces",
+      "before": "reconstruct_direction",
+      "relation": "next_iteration",
+      "scope": "direction_transition",
+      "reason": "the current face solve must finish before minus and plus scratch are overwritten for the next direction"
+    }
+  ],
+  "reductions": [
+    {
+      "target": "max_speed",
+      "operator": "max",
+      "identity": 0.0,
+      "operation": "solve_faces"
+    }
+  ],
+  "failure_semantics": {
+    "status": "status",
+    "success_value": "HY_OK",
+    "diagnostic": "failed_face",
+    "partial_writes": true,
+    "commit_partial_results": false
+  },
+  "baseline_grouping": {
+    "task_function": "single_face_flux_stage",
+    "kernel_grouping": "preserve_reference_operation_order",
+    "allow_fusion": false,
+    "allow_splitting": false
+  }
+}
