@@ -55,10 +55,22 @@ def _openacc_device_source(source, routine_names, fixed_flux_directions=False):
             line_end = source.index("\n", line_end + 1)
         source = (
             source[:line_end + 1]
-            + "    !$acc routine vector\n"
+            + "    !$acc routine seq\n"
             + source[line_end + 1:]
         )
     return source
+
+
+def _openacc_sequential_wrappers(path):
+    """Keep ordered NewImpl arithmetic out of OpenACC vector-lane context."""
+    source = path.read_text(encoding="utf-8")
+    vector_directives = source.count("!$acc routine vector")
+    vector_calls = source.count(") vector")
+    if vector_directives < 1 or vector_calls < 1:
+        raise RuntimeError("Expected generated OpenACC vector routine anchors")
+    source = source.replace("!$acc routine vector", "!$acc routine seq")
+    source = source.replace(") vector", ") seq")
+    _write_text(path, source, True)
 
 
 def _replace_device_view(source, old, new, expected):
@@ -487,6 +499,8 @@ def main():
         tf_spec, output, args.overwrite, args.milhoja_prefix, 4, logger
     )
     milhoja.generate_task_function(tf_spec, output, args.overwrite, 4, logger)
+    if args.execution == "cuda-openacc":
+        _openacc_sequential_wrappers(output / "newimpl_face_flux_tf_mod.F90")
     print("Generated {} and {} with grouping {} for {} in {}".format(
         tf_spec.name, tf_spec.data_item_class_name, args.grouping,
         args.execution, output

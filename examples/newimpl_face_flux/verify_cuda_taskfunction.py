@@ -88,8 +88,12 @@ def verify_sources(output, grouping):
     assert "deallocate(flux_view%directions" not in adapter
     assert "state_view%values => state" in adapter
     assert "state_view%origin = tile_lbound" in adapter
-    assert adapter.count("!$acc routine vector") >= len(adapter_names(grouping))
+    assert adapter.count("!$acc routine seq") >= len(adapter_names(grouping))
     assert "!$acc parallel loop gang" in wrapper
+    assert "!$acc routine vector" not in wrapper
+    assert ") vector" not in wrapper
+    assert "!$acc routine seq" in wrapper
+    assert ") seq" in wrapper
     assert "deviceptr(" in wrapper
     assert "MILHOJA_OPENACC_OFFLOADING" in cpp
 

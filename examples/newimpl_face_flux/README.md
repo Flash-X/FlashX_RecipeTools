@@ -329,7 +329,11 @@ a GPU/OpenACC TaskFunction and replaces the adapter's host pointer-remapping
 views with rank-four, single-tile device views carrying explicit physical
 origins. It also uses a fixed two-direction descriptor, so no allocation or
 unsupported pointer-bounds remapping occurs inside a device routine. The
-checksummed arithmetic is unchanged.
+checksummed arithmetic is unchanged. The initial correctness path lowers the
+adapter and arithmetic as OpenACC `seq` routines called once per tile/gang;
+this preserves the original ordered status handling and `max_speed` reduction.
+Loop-level device parallelism is a separate optimization step after this path
+passes numerical comparison.
 
 Verify all six CUDA/OpenACC generations without compiling them:
 
