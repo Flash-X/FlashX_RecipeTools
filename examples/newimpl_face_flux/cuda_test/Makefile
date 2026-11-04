@@ -2,7 +2,7 @@ MILHOJA_PREFIX ?= ../../../../Milhoja/2D-cuda
 LAYOUT ?= variable-last
 GROUPING ?= fully_fused
 PYTHON ?= python3
-RECIPE_PYTHONPATH ?= ../../../src
+RECIPE_PYTHONPATH ?= ../../../src:$(abspath $(MILHOJA_PREFIX)/../tools/milhoja_pypkg/src)
 NEWIMPL_SOURCE ?= ../../../../Flash-X/source/physics/Hydro/HydroMain/Spark/NewImpl
 
 FC = mpif90

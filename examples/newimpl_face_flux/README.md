@@ -332,7 +332,8 @@ inside a device routine. The checksummed arithmetic is unchanged.
 Verify all six CUDA/OpenACC generations without compiling them:
 
 ```sh
-PYTHONPATH=src python examples/newimpl_face_flux/verify_cuda_taskfunction.py \
+PYTHONPATH=src:/path/to/Milhoja/tools/milhoja_pypkg/src \
+python examples/newimpl_face_flux/verify_cuda_taskfunction.py \
   /path/to/Flash-X/source/physics/Hydro/HydroMain/Spark/NewImpl \
   /path/to/Milhoja/2D-cuda
 ```
