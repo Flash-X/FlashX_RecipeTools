@@ -20,7 +20,7 @@ from grouping_config import (
 )
 from layout_config import (
     LAYOUT_CHOICES, VARIABLE_FIRST, VARIABLE_LAST, adapter_source,
-    layout_binding,
+    device_layout_binding, layout_binding,
 )
 
 
@@ -61,7 +61,13 @@ def _openacc_device_source(source, routine_names, fixed_flux_directions=False):
     return source
 
 
-def _openacc_adapter_source(source, routine_names):
+def _replace_device_view(source, old, new, expected):
+    if source.count(old) != expected:
+        raise RuntimeError("Unexpected device-view adapter anchor count")
+    return source.replace(old, new)
+
+
+def _openacc_adapter_source(source, routine_names, layout):
     """Make adapters callable on device without device-side allocation."""
     allocation = "    allocate(flux_view%directions(2))\n"
     deallocation = "    deallocate(flux_view%directions)\n"
@@ -71,6 +77,105 @@ def _openacc_adapter_source(source, routine_names):
     if source.count(deallocation) != allocation_count:
         raise RuntimeError("Unexpected adapter direction-deallocation count")
     source = source.replace(allocation, "").replace(deallocation, "")
+
+    if layout == VARIABLE_FIRST:
+        state_view = (
+            "    state_view%values( &\n"
+            "      1:size(state, 1), &\n"
+            "      tile_lbound(1):available_hi(1), &\n"
+            "      tile_lbound(2):available_hi(2), &\n"
+            "      tile_lbound(3):available_hi(3), 1:1) => state\n"
+        )
+        flux_x_view = (
+            "    flux_view%directions(1)%values( &\n"
+            "      1:size(flux_x, 1), &\n"
+            "      tile_lo(1):tile_hi(1) + 1, &\n"
+            "      tile_lo(2):tile_hi(2), &\n"
+            "      tile_lo(3):tile_hi(3), 1:1) => flux_x\n"
+        )
+        flux_y_view = (
+            "    flux_view%directions(2)%values( &\n"
+            "      1:size(flux_y, 1), &\n"
+            "      tile_lo(1):tile_hi(1), &\n"
+            "      tile_lo(2):tile_hi(2) + 1, &\n"
+            "      tile_lo(3):tile_hi(3), 1:1) => flux_y\n"
+        )
+        flat_view = (
+            "    workspace%flat%values( &\n"
+            "      1:1, tile_lo(1) - 1:tile_hi(1) + 1, &\n"
+            "      tile_lo(2) - 1:tile_hi(2) + 1, &\n"
+            "      tile_lo(3):tile_hi(3), 1:1) => flat\n"
+        )
+        minus_view = (
+            "    workspace%minus%values( &\n"
+            "      1:7, tile_lo(1) - 1:tile_hi(1) + 1, &\n"
+            "      tile_lo(2) - 1:tile_hi(2) + 1, &\n"
+            "      tile_lo(3):tile_hi(3), 1:1) => reconstructed_minus\n"
+        )
+        plus_view = (
+            "    workspace%plus%values( &\n"
+            "      1:7, tile_lo(1) - 1:tile_hi(1) + 1, &\n"
+            "      tile_lo(2) - 1:tile_hi(2) + 1, &\n"
+            "      tile_lo(3):tile_hi(3), 1:1) => reconstructed_plus\n"
+        )
+    else:
+        state_view = (
+            "    state_view%values( &\n"
+            "      tile_lbound(1):available_hi(1), &\n"
+            "      tile_lbound(2):available_hi(2), &\n"
+            "      tile_lbound(3):available_hi(3), &\n"
+            "      1:size(state, 4), 1:1) => state\n"
+        )
+        flux_x_view = (
+            "    flux_view%directions(1)%values( &\n"
+            "      tile_lo(1):tile_hi(1) + 1, &\n"
+            "      tile_lo(2):tile_hi(2), &\n"
+            "      tile_lo(3):tile_hi(3), &\n"
+            "      1:size(flux_x, 4), 1:1) => flux_x\n"
+        )
+        flux_y_view = (
+            "    flux_view%directions(2)%values( &\n"
+            "      tile_lo(1):tile_hi(1), &\n"
+            "      tile_lo(2):tile_hi(2) + 1, &\n"
+            "      tile_lo(3):tile_hi(3), &\n"
+            "      1:size(flux_y, 4), 1:1) => flux_y\n"
+        )
+        flat_view = (
+            "    workspace%flat%values( &\n"
+            "      tile_lo(1) - 1:tile_hi(1) + 1, &\n"
+            "      tile_lo(2) - 1:tile_hi(2) + 1, &\n"
+            "      tile_lo(3):tile_hi(3), 1:1, 1:1) => flat\n"
+        )
+        minus_view = (
+            "    workspace%minus%values( &\n"
+            "      tile_lo(1) - 1:tile_hi(1) + 1, &\n"
+            "      tile_lo(2) - 1:tile_hi(2) + 1, &\n"
+            "      tile_lo(3):tile_hi(3), 1:7, 1:1) => reconstructed_minus\n"
+        )
+        plus_view = (
+            "    workspace%plus%values( &\n"
+            "      tile_lo(1) - 1:tile_hi(1) + 1, &\n"
+            "      tile_lo(2) - 1:tile_hi(2) + 1, &\n"
+            "      tile_lo(3):tile_hi(3), 1:7, 1:1) => reconstructed_plus\n"
+        )
+
+    origin = "[tile_lo(1) - 1, tile_lo(2) - 1, tile_lo(3)]"
+    replacements = (
+        (state_view, "    state_view%values => state\n"
+                     "    state_view%origin = tile_lbound\n"),
+        (flux_x_view, "    flux_view%directions(1)%values => flux_x\n"
+                      "    flux_view%directions(1)%origin = tile_lo\n"),
+        (flux_y_view, "    flux_view%directions(2)%values => flux_y\n"
+                      "    flux_view%directions(2)%origin = tile_lo\n"),
+        (flat_view, "    workspace%flat%values => flat\n"
+                    "    workspace%flat%origin = {}\n".format(origin)),
+        (minus_view, "    workspace%minus%values => reconstructed_minus\n"
+                     "    workspace%minus%origin = {}\n".format(origin)),
+        (plus_view, "    workspace%plus%values => reconstructed_plus\n"
+                    "    workspace%plus%origin = {}\n".format(origin)),
+    )
+    for old, new in replacements:
+        source = _replace_device_view(source, old, new, allocation_count)
     return _openacc_device_source(source, routine_names)
 
 
@@ -263,17 +368,22 @@ def main():
     grouping = boundary_contract.legal_grouping(args.grouping)
     computation = output / "newimpl_face_flux_milhoja.F90"
     computation_generator = ComputationSourceGenerator(contract)
+    binding = (
+        device_layout_binding(HERE, args.layout)
+        if args.execution == "cuda-openacc"
+        else layout_binding(HERE, args.layout)
+    )
     if args.grouping == "fully_fused":
         computation_generator.generate(
             args.newimpl_source,
-            layout_binding(HERE, args.layout),
+            binding,
             computation,
             overwrite=args.overwrite,
         )
     else:
         computation_generator.generate_derived(
             args.newimpl_source,
-            layout_binding(HERE, args.layout),
+            binding,
             computation,
             grouped_arithmetic_transform(args.grouping),
             "module",
@@ -305,11 +415,10 @@ def main():
         computation_text = _openacc_device_source(
             computation_text,
             arithmetic_routines,
-            fixed_flux_directions=True,
         )
         _write_text(computation, computation_text, True)
         adapter_text = _openacc_adapter_source(
-            adapter_text, adapter_names(args.grouping)
+            adapter_text, adapter_names(args.grouping), args.layout
         )
     _write_text(
         output / "newimpl_face_flux_adapter_mod.F90",

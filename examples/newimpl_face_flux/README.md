@@ -325,9 +325,11 @@ decomposition on HOSTMEM.
 ## NVIDIA CUDA/OpenACC verification
 
 TaskFunction generation also accepts `--execution cuda-openacc`. This selects
-a GPU/OpenACC TaskFunction and replaces the adapter's allocatable direction
-descriptor with a fixed two-direction descriptor so that no allocation occurs
-inside a device routine. The checksummed arithmetic is unchanged.
+a GPU/OpenACC TaskFunction and replaces the adapter's host pointer-remapping
+views with rank-four, single-tile device views carrying explicit physical
+origins. It also uses a fixed two-direction descriptor, so no allocation or
+unsupported pointer-bounds remapping occurs inside a device routine. The
+checksummed arithmetic is unchanged.
 
 Verify all six CUDA/OpenACC generations without compiling them:
 

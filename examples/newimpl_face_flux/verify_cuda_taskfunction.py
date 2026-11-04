@@ -83,8 +83,11 @@ def verify_sources(output, grouping):
 
     assert "type(flux_direction) :: directions(2)" in computation
     assert "allocatable :: directions" not in computation
+    assert "integer :: origin(3)=1" in computation
     assert "allocate(flux_view%directions" not in adapter
     assert "deallocate(flux_view%directions" not in adapter
+    assert "state_view%values => state" in adapter
+    assert "state_view%origin = tile_lbound" in adapter
     assert adapter.count("!$acc routine vector") >= len(adapter_names(grouping))
     assert "!$acc parallel loop gang" in wrapper
     assert "deviceptr(" in wrapper
