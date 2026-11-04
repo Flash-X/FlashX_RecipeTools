@@ -245,3 +245,23 @@ failure. It compares face fluxes, `max_speed`, status, and all failed-face
 diagnostics against a direct call through the matching layout adapter. The
 layout-specific build directories prevent Fortran modules or objects from one
 layout being reused by the other.
+
+## Step 7 legal computational boundaries
+
+`newimpl_face_flux.boundaries.json` declares the finite set of legal kernel
+cuts and grouping candidates for the unchanged face-flux arithmetic.
+`BOUNDARY_CONTRACT.md` documents the associated live intermediates, iteration
+domains, scratch lifetimes, synchronization, numerical ordering, failure
+behavior, and prohibited transformations.
+
+Validate the declaration and its binding to the checksummed NewImpl sources:
+
+```sh
+python verify_boundaries.py \
+  /path/to/Flash-X/source/physics/Hydro/HydroMain/Spark/NewImpl
+```
+
+The approved candidates are `fully_fused`,
+`flattening_then_directional`, and `flattening_reconstruction_solve`. They all
+retain one TaskFunction and one resident DataPacket. This step does not select
+a grouping or generate split kernels; those changes belong to Step 8.

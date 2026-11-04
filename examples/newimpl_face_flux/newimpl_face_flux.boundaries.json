@@ -1,0 +1,274 @@
+{
+  "format": {
+    "name": "FlashX-KernelBoundary-Contract",
+    "version": "1.0.0"
+  },
+  "name": "newimpl_face_flux_boundaries",
+  "arithmetic_contract": {
+    "name": "newimpl_face_flux",
+    "sha256": "990228fc790fff26d6426828c9a8cb7bee47808d308e5efdd32d11c22e6b6e0a"
+  },
+  "operation_order": [
+    "compute_flattening",
+    "reconstruct_direction",
+    "solve_faces"
+  ],
+  "operation_domains": {
+    "compute_flattening": "lo-active_unit:hi+active_unit",
+    "reconstruct_direction": "for direction=1:ndim over lo-unit(direction):hi+unit(direction)",
+    "solve_faces": "for direction=1:ndim over lo:hi+unit(direction)"
+  },
+  "scratch_lifetimes": {
+    "flattening": "face_flux_stage",
+    "reconstructed_minus": "one_direction",
+    "reconstructed_plus": "one_direction"
+  },
+  "reference_schedule": "validate; compute_flattening; for direction=1:ndim in ascending order: reconstruct_direction then solve_faces; stop immediately on non-HY_OK",
+  "constraints": {
+    "checksummed_arithmetic": {
+      "description": "All decompositions lower the same application-owned arithmetic and helper sources.",
+      "requirement": "Revalidate the arithmetic-helper contract and its three source hashes before generation."
+    },
+    "preflight_before_work": {
+      "description": "Argument, extent, workspace, mapping, and parameter validation precedes numerical work.",
+      "requirement": "Initialize status, failed_face, and max_speed exactly as the entrypoint does and launch no computational kernel after failed preflight validation."
+    },
+    "helper_branch_order": {
+      "description": "The helper call sequence and all branches are part of the numerical contract.",
+      "requirement": "Do not split, fuse, reorder, or reassociate operations inside a declared operation."
+    },
+    "direction_serial_order": {
+      "description": "Directions execute in ascending order from one through ndim.",
+      "requirement": "Complete reconstruction and face solving for direction d before starting reconstruction for direction d+1."
+    },
+    "same_direction_reconstruction": {
+      "description": "A face solve consumes the reconstructed states produced for that same direction.",
+      "requirement": "Preserve direction identity across any reconstruction-to-solve kernel boundary."
+    },
+    "directional_scratch_reuse": {
+      "description": "Minus and plus reconstruction arrays are reused for every direction.",
+      "requirement": "Finish all reads by solve_faces before reconstruct_direction overwrites either array for the next direction."
+    },
+    "max_speed_reduction_order": {
+      "description": "max_speed starts at zero and is updated in the reference direction and face traversal order.",
+      "requirement": "Preserve the max operator, identity, candidate set, NaN behavior, and update order; do not introduce a reassociated parallel reduction."
+    },
+    "failure_short_circuit": {
+      "description": "The first non-HY_OK status terminates the stage and records the reference failed face.",
+      "requirement": "Do not execute later faces, directions, or kernel groups after failure, and do not commit partial results when commit_partial_results is false."
+    },
+    "single_task_function": {
+      "description": "Kernel grouping is independent of Milhoja TaskFunction grouping.",
+      "requirement": "All legal kernel groups remain inside one face-flux TaskFunction and reuse one resident DataPacket."
+    }
+  },
+  "boundaries": [
+    {
+      "name": "after_flattening",
+      "after": "compute_flattening",
+      "before": "reconstruct_direction",
+      "relation": "direct_dependency",
+      "scope": "stage",
+      "live_intermediates": [
+        "flattening"
+      ],
+      "control_state": [
+        "status"
+      ],
+      "materialize": [
+        "flattening",
+        "status"
+      ],
+      "required_synchronization": "same_kernel_or_kernel_completion",
+      "constraints": [
+        "preflight_before_work",
+        "helper_branch_order",
+        "failure_short_circuit"
+      ]
+    },
+    {
+      "name": "after_reconstruction",
+      "after": "reconstruct_direction",
+      "before": "solve_faces",
+      "relation": "direct_dependency",
+      "scope": "direction",
+      "live_intermediates": [
+        "reconstructed_minus",
+        "reconstructed_plus"
+      ],
+      "control_state": [],
+      "materialize": [
+        "reconstructed_minus",
+        "reconstructed_plus"
+      ],
+      "required_synchronization": "same_kernel_or_kernel_completion",
+      "constraints": [
+        "helper_branch_order",
+        "same_direction_reconstruction",
+        "directional_scratch_reuse"
+      ]
+    },
+    {
+      "name": "direction_transition",
+      "after": "solve_faces",
+      "before": "reconstruct_direction",
+      "relation": "next_iteration",
+      "scope": "direction_transition",
+      "live_intermediates": [
+        "face_flux",
+        "max_speed"
+      ],
+      "control_state": [
+        "status",
+        "failed_face"
+      ],
+      "materialize": [
+        "face_flux",
+        "max_speed",
+        "status",
+        "failed_face"
+      ],
+      "required_synchronization": "kernel_completion",
+      "constraints": [
+        "direction_serial_order",
+        "directional_scratch_reuse",
+        "max_speed_reduction_order",
+        "failure_short_circuit"
+      ]
+    }
+  ],
+  "legal_groupings": [
+    {
+      "name": "fully_fused",
+      "kernel_groups": [
+        [
+          "compute_flattening",
+          "reconstruct_direction",
+          "solve_faces"
+        ]
+      ],
+      "cuts": [],
+      "required_boundaries": [
+        "direction_transition"
+      ],
+      "schedule": "validate; compute_flattening; for direction=1:ndim in ascending order: reconstruct_direction then solve_faces; stop immediately on non-HY_OK",
+      "constraints": [
+        "checksummed_arithmetic",
+        "preflight_before_work",
+        "helper_branch_order",
+        "direction_serial_order",
+        "same_direction_reconstruction",
+        "directional_scratch_reuse",
+        "max_speed_reduction_order",
+        "failure_short_circuit",
+        "single_task_function"
+      ]
+    },
+    {
+      "name": "flattening_then_directional",
+      "kernel_groups": [
+        [
+          "compute_flattening"
+        ],
+        [
+          "reconstruct_direction",
+          "solve_faces"
+        ]
+      ],
+      "cuts": [
+        "after_flattening"
+      ],
+      "required_boundaries": [
+        "direction_transition"
+      ],
+      "schedule": "validate; compute_flattening; for direction=1:ndim in ascending order: reconstruct_direction then solve_faces; stop immediately on non-HY_OK",
+      "constraints": [
+        "checksummed_arithmetic",
+        "preflight_before_work",
+        "helper_branch_order",
+        "direction_serial_order",
+        "same_direction_reconstruction",
+        "directional_scratch_reuse",
+        "max_speed_reduction_order",
+        "failure_short_circuit",
+        "single_task_function"
+      ]
+    },
+    {
+      "name": "flattening_reconstruction_solve",
+      "kernel_groups": [
+        [
+          "compute_flattening"
+        ],
+        [
+          "reconstruct_direction"
+        ],
+        [
+          "solve_faces"
+        ]
+      ],
+      "cuts": [
+        "after_flattening",
+        "after_reconstruction"
+      ],
+      "required_boundaries": [
+        "direction_transition"
+      ],
+      "schedule": "validate; compute_flattening; for direction=1:ndim in ascending order: reconstruct_direction then solve_faces; stop immediately on non-HY_OK",
+      "constraints": [
+        "checksummed_arithmetic",
+        "preflight_before_work",
+        "helper_branch_order",
+        "direction_serial_order",
+        "same_direction_reconstruction",
+        "directional_scratch_reuse",
+        "max_speed_reduction_order",
+        "failure_short_circuit",
+        "single_task_function"
+      ]
+    }
+  ],
+  "prohibited_transformations": [
+    {
+      "name": "all_directions_reconstructed_first",
+      "reason": "The reference reuses one minus/plus workspace and consumes each direction before the next overwrite.",
+      "violates": [
+        "direction_serial_order",
+        "same_direction_reconstruction",
+        "directional_scratch_reuse"
+      ]
+    },
+    {
+      "name": "concurrent_directions",
+      "reason": "Concurrent directions race on reconstruction scratch and alter failure and max-speed ordering.",
+      "violates": [
+        "direction_serial_order",
+        "directional_scratch_reuse",
+        "max_speed_reduction_order",
+        "failure_short_circuit"
+      ]
+    },
+    {
+      "name": "split_face_solver_helper_chain",
+      "reason": "Face-local states and branching decisions are private temporaries whose helper order is fixed by the arithmetic.",
+      "violates": [
+        "helper_branch_order",
+        "failure_short_circuit"
+      ]
+    },
+    {
+      "name": "parallel_reassociated_max_speed",
+      "reason": "A different reduction tree can change NaN handling and the prescribed update order.",
+      "violates": [
+        "max_speed_reduction_order"
+      ]
+    },
+    {
+      "name": "multiple_task_functions",
+      "reason": "Phase III changes kernel grouping inside one resident DataPacket, not Milhoja scheduling granularity.",
+      "violates": [
+        "single_task_function"
+      ]
+    }
+  ]
+}

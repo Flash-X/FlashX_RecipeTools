@@ -15,6 +15,10 @@ from .ComputationSourceGenerator import (
     ComputationSourceGenerationError,
     ComputationSourceGenerator,
 )
+from .KernelBoundaryContract import (
+    KernelBoundaryContract,
+    KernelBoundaryContractError,
+)
 
 
 __all__ = [
@@ -22,6 +26,8 @@ __all__ = [
     "ArithmeticHelperContractError",
     "ComputationSourceGenerationError",
     "ComputationSourceGenerator",
+    "KernelBoundaryContract",
+    "KernelBoundaryContractError",
     "OperationRecipe",
     "TimeStepIR",
     "TimeStepRecipe",
