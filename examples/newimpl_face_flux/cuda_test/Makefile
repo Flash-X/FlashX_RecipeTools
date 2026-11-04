@@ -8,10 +8,10 @@ NEWIMPL_SOURCE ?= ../../../../Flash-X/source/physics/Hydro/HydroMain/Spark/NewIm
 FC = mpif90
 CXX = mpicxx
 MPICXX = mpicxx
-LINKER = mpicxx
+LINKER = mpif90
 
 OFFLOAD_FLAGS ?= -acc=gpu -gpu=ccnative,cuda13.1,ptxinfo -Minfo=accel
-MIXED_LINK_FLAGS ?= -fortranlibs -cudalib
+MIXED_LINK_FLAGS ?= -cudalib -lstdc++
 RUNNER ?= timeout 90s env OMPI_MCA_coll_ucc_enable=0 \
           OMPI_MCA_coll_hcoll_enable=0 OMPI_MCA_pml=ob1 \
           OMPI_MCA_btl=self UCX_MODULES=^cuda mpirun -np 1
