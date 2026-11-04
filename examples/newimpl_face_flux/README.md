@@ -320,6 +320,37 @@ make run-matrix \
 ```
 
 This step establishes and verifies recipe-controlled computational entry-point
-decomposition. It does not claim that the current derived-type NewImpl adapter
-is already a CUDA/OpenACC device kernel; the separately verified Milhoja
-CUDA/OpenACC pointer round trip remains the device-interoperability baseline.
+decomposition on HOSTMEM.
+
+## NVIDIA CUDA/OpenACC verification
+
+TaskFunction generation also accepts `--execution cuda-openacc`. This selects
+a GPU/OpenACC TaskFunction and replaces the adapter's allocatable direction
+descriptor with a fixed two-direction descriptor so that no allocation occurs
+inside a device routine. The checksummed arithmetic is unchanged.
+
+Verify all six CUDA/OpenACC generations without compiling them:
+
+```sh
+PYTHONPATH=src python examples/newimpl_face_flux/verify_cuda_taskfunction.py \
+  /path/to/Flash-X/source/physics/Hydro/HydroMain/Spark/NewImpl \
+  /path/to/Milhoja/2D-cuda
+```
+
+On an NVIDIA node with an NVHPC-built Milhoja CUDA/OpenACC installation, build
+and run the numerical comparison matrix with:
+
+```sh
+cd examples/newimpl_face_flux/cuda_test
+make run-matrix \
+  MILHOJA_PREFIX=/path/to/Milhoja/2D-cuda \
+  NEWIMPL_SOURCE=/path/to/Flash-X/source/physics/Hydro/HydroMain/Spark/NewImpl \
+  PYTHON="$(command -v python)"
+```
+
+The driver executes the same direct-versus-generated 1D, 2D, and failure cases
+as the HOSTMEM test. It waits for DataPacket return transfer completion and
+copies device-only diagnostic scratch back before comparing fluxes,
+`max_speed`, status, and failed-face diagnostics. The default NVHPC flags
+target the visible GPU with CUDA 13.1; override `OFFLOAD_FLAGS` when the local
+NVHPC/CUDA installation requires a different toolkit selection.

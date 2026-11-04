@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a grouped 2D HOSTMEM TaskFunction for NewImpl face flux."""
+"""Generate a grouped 2D TaskFunction for NewImpl face flux."""
 
 import argparse
 import json
@@ -26,6 +26,52 @@ from layout_config import (
 
 HERE = Path(__file__).resolve().parent
 TASK_FUNCTION_NAME = "newimpl_face_flux_tf"
+EXECUTIONS = ("hostmem", "cuda-openacc")
+
+
+def _openacc_device_source(source, routine_names, fixed_flux_directions=False):
+    """Add device-only scaffolding without changing contracted arithmetic."""
+    if fixed_flux_directions:
+        anchor = "type(flux_direction), allocatable :: directions(:)"
+        if source.count(anchor) != 1:
+            raise RuntimeError(
+                "Expected one allocatable flux-direction declaration"
+            )
+        source = source.replace(
+            anchor, "type(flux_direction) :: directions(2)"
+        )
+
+    for name in routine_names:
+        anchor = "  subroutine {}(".format(name)
+        if source.count(anchor) != 1:
+            raise RuntimeError(
+                "Expected one OpenACC routine anchor for {}".format(name)
+            )
+        start = source.index(anchor)
+        line_end = source.index("\n", start)
+        # Subroutine statements can continue over several source lines.  Put
+        # the directive immediately after the complete statement.
+        while source[line_end - 1] == "&":
+            line_end = source.index("\n", line_end + 1)
+        source = (
+            source[:line_end + 1]
+            + "    !$acc routine vector\n"
+            + source[line_end + 1:]
+        )
+    return source
+
+
+def _openacc_adapter_source(source, routine_names):
+    """Make adapters callable on device without device-side allocation."""
+    allocation = "    allocate(flux_view%directions(2))\n"
+    deallocation = "    deallocate(flux_view%directions)\n"
+    allocation_count = source.count(allocation)
+    if allocation_count < len(routine_names):
+        raise RuntimeError("Unexpected adapter direction-allocation count")
+    if source.count(deallocation) != allocation_count:
+        raise RuntimeError("Unexpected adapter direction-deallocation count")
+    source = source.replace(allocation, "").replace(deallocation, "")
+    return _openacc_device_source(source, routine_names)
 
 
 def _write_json(path, data, overwrite):
@@ -140,8 +186,13 @@ def _group_specification(nxb, nyb, layout, grouping):
     return specification
 
 
-def _contract_mapping(layout, grouping):
+def _contract_mapping(layout, grouping, execution):
     return {
+        "execution": {
+            "name": execution,
+            "processor": "GPU" if execution == "cuda-openacc" else "CPU",
+            "offloading": "OpenACC" if execution == "cuda-openacc" else "",
+        },
         "data_layout": {
             "packet": layout,
             "tile_source": VARIABLE_LAST,
@@ -187,6 +238,10 @@ def main():
         "--layout", choices=LAYOUT_CHOICES, default=VARIABLE_LAST,
         help="component ordering inside the generated DataPacket",
     )
+    parser.add_argument(
+        "--execution", choices=EXECUTIONS, default="hostmem",
+        help="TaskFunction execution backend",
+    )
     boundary_contract = KernelBoundaryContract.load(
         HERE / "newimpl_face_flux.boundaries.json",
         HERE / "newimpl_face_flux.contract.json",
@@ -226,9 +281,39 @@ def main():
             overwrite=args.overwrite,
         )
     adapter_template = adapter_source(HERE, args.layout).read_text(encoding="utf-8")
+    adapter_text = grouped_adapter_source(adapter_template, args.grouping)
+    if args.execution == "cuda-openacc":
+        computation_text = computation.read_text(encoding="utf-8")
+        arithmetic_routines = (
+            ("hy_getFaceFlux",)
+            if args.grouping == "fully_fused"
+            else tuple(
+                {
+                    "newimpl_face_flux_flattening_adapter": "hy_faceFluxFlattening",
+                    "newimpl_face_flux_directional_x_adapter": "hy_faceFluxDirectional",
+                    "newimpl_face_flux_directional_y_adapter": "hy_faceFluxDirectional",
+                    "newimpl_face_flux_reconstruct_x_adapter": "hy_faceFluxReconstructDirection",
+                    "newimpl_face_flux_reconstruct_y_adapter": "hy_faceFluxReconstructDirection",
+                    "newimpl_face_flux_solve_x_adapter": "hy_faceFluxSolveDirection",
+                    "newimpl_face_flux_solve_y_adapter": "hy_faceFluxSolveDirection",
+                }[name]
+                for name in adapter_names(args.grouping)
+            )
+        )
+        # Preserve call order while removing the duplicate X/Y routine names.
+        arithmetic_routines = tuple(dict.fromkeys(arithmetic_routines))
+        computation_text = _openacc_device_source(
+            computation_text,
+            arithmetic_routines,
+            fixed_flux_directions=True,
+        )
+        _write_text(computation, computation_text, True)
+        adapter_text = _openacc_adapter_source(
+            adapter_text, adapter_names(args.grouping)
+        )
     _write_text(
         output / "newimpl_face_flux_adapter_mod.F90",
-        grouped_adapter_source(adapter_template, args.grouping),
+        adapter_text,
         args.overwrite,
     )
 
@@ -244,9 +329,11 @@ def main():
     )
     partial = construct_partial_tf_spec({
         "name": TASK_FUNCTION_NAME,
-        "processor": "CPU",
+        "processor": "GPU" if args.execution == "cuda-openacc" else "CPU",
         "data_item": "DataPacket",
-        "computation_offloading": "",
+        "computation_offloading": (
+            "OpenACC" if args.execution == "cuda-openacc" else ""
+        ),
         "byte_alignment": 16,
         "data_layout": args.layout,
     })
@@ -262,7 +349,7 @@ def main():
     _write_json(partial_path, partial, args.overwrite)
     _write_json(
         mapping_path,
-        _contract_mapping(args.layout, grouping),
+        _contract_mapping(args.layout, grouping, args.execution),
         args.overwrite,
     )
     _write_json(
@@ -291,8 +378,9 @@ def main():
         tf_spec, output, args.overwrite, args.milhoja_prefix, 4, logger
     )
     milhoja.generate_task_function(tf_spec, output, args.overwrite, 4, logger)
-    print("Generated {} and {} with grouping {} in {}".format(
-        tf_spec.name, tf_spec.data_item_class_name, args.grouping, output
+    print("Generated {} and {} with grouping {} for {} in {}".format(
+        tf_spec.name, tf_spec.data_item_class_name, args.grouping,
+        args.execution, output
     ))
 
 

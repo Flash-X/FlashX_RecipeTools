@@ -117,6 +117,11 @@ def _verify_specification(output, layout, grouping):
     mapping = json.loads(
         (output / "newimpl_face_flux.mapping.json").read_text()
     )
+    assert mapping["execution"] == {
+        "name": "hostmem",
+        "processor": "CPU",
+        "offloading": "",
+    }
     assert mapping["data_layout"] == {
         "packet": layout,
         "tile_source": "variable-last",

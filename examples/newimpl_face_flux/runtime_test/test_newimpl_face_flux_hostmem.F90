@@ -45,15 +45,27 @@ program test_newimpl_face_flux_hostmem
   integer(c_int) :: error
 
   error = newimpl_face_flux_hostmem_initialize_c()
+#ifdef NEWIMPL_CUDA_OPENACC
+  if (error /= 0) error stop "Unable to initialize Milhoja CUDA/OpenACC"
+#else
   if (error /= 0) error stop "Unable to initialize Milhoja HOSTMEM"
+#endif
 
   call run_case("constant 1D", 1, .false.)
   call run_case("constant 2D", 2, .false.)
   call run_case("failure diagnostics", 2, .true.)
 
   error = newimpl_face_flux_hostmem_finalize_c()
+#ifdef NEWIMPL_CUDA_OPENACC
+  if (error /= 0) error stop "Unable to finalize Milhoja CUDA/OpenACC"
+#else
   if (error /= 0) error stop "Unable to finalize Milhoja HOSTMEM"
+#endif
+#ifdef NEWIMPL_CUDA_OPENACC
+  print *, "NewImpl CUDA/OpenACC runtime comparisons passed"
+#else
   print *, "NewImpl HOSTMEM runtime comparisons passed"
+#endif
 
 contains
 
@@ -152,7 +164,11 @@ contains
       0.0_c_double, 1.0e-36_c_double, 1.0e-99_c_double, &
       int(flattening_flag, c_int), 0_c_int, 0_c_int, packet_speed, &
       packet_status, packet_failed)
+#ifdef NEWIMPL_CUDA_OPENACC
+    if (run_error /= 0) error stop "CUDA/OpenACC packet execution failed"
+#else
     if (run_error /= 0) error stop "HOSTMEM packet execution failed"
+#endif
 
     call require(packet_status == direct_status(1), name // ": status")
     call require(all(packet_failed == direct_failed), name // ": failed face")
