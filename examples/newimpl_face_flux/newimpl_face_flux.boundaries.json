@@ -55,7 +55,7 @@
     },
     "failure_short_circuit": {
       "description": "The first non-HY_OK status terminates the stage and records the reference failed face.",
-      "requirement": "Do not execute later faces, directions, or kernel groups after failure, and do not commit partial results when commit_partial_results is false."
+      "requirement": "Every later statically scheduled group must test status before numerical work; execute no later face or direction arithmetic after failure, and do not commit partial results when commit_partial_results is false."
     },
     "single_task_function": {
       "description": "Kernel grouping is independent of Milhoja TaskFunction grouping.",

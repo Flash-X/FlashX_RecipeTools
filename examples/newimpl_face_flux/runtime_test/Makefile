@@ -1,5 +1,9 @@
 MILHOJA_PREFIX ?= /Users/adubey/ORCHA/Milhoja/2D-hostmem
 LAYOUT ?= variable-last
+GROUPING ?= fully_fused
+PYTHON ?= python3
+RECIPE_PYTHONPATH ?= ../../../src
+NEWIMPL_SOURCE ?= ../../../../Flash-X/source/physics/Hydro/HydroMain/Spark/NewImpl
 FC = gfortran
 CXX = c++
 MPICXX = mpicxx
@@ -7,19 +11,26 @@ LINKER = mpifort
 CXX_RUNTIME ?= -lc++
 MPI_CXXFLAGS = $(shell $(MPICXX) --showme:compile)
 
+ifeq ($(GROUPING),fully_fused)
+else ifeq ($(GROUPING),flattening_then_directional)
+else ifeq ($(GROUPING),flattening_reconstruction_solve)
+else
+$(error Unsupported GROUPING '$(GROUPING)')
+endif
+
+GENERATED ?= ../generated/runtime-$(LAYOUT)-$(GROUPING)
+BUILD ?= ../build/runtime-$(LAYOUT)-$(GROUPING)
+
 ifeq ($(LAYOUT),variable-last)
-GENERATED ?= ../generated/taskfunction
-BUILD ?= ../build/runtime-variable-last
 LAYOUT_FFLAGS :=
 else ifeq ($(LAYOUT),variable-first)
-GENERATED ?= ../generated/taskfunction_variable_first
-BUILD ?= ../build/runtime-variable-first
 LAYOUT_FFLAGS := -DNEWIMPL_VARIABLE_FIRST
 else
 $(error Unsupported LAYOUT '$(LAYOUT)'; use variable-last or variable-first)
 endif
 
 TARGET := $(BUILD)/test_newimpl_face_flux_hostmem
+STAMP := $(GENERATED)/.generated
 
 FFLAGS := -cpp -std=f2008 -Wall -Wextra -fcheck=all \
           $(LAYOUT_FFLAGS) \
@@ -37,12 +48,42 @@ OBJECTS := \
   $(BUILD)/newimpl_face_flux_hostmem_bridge.o \
   $(BUILD)/test_newimpl_face_flux_hostmem.o
 
-.PHONY: all run clean
+.PHONY: all generate regenerate run run-matrix clean
 
-all: $(TARGET)
+all: generate $(TARGET)
+
+generate: $(STAMP)
+
+$(STAMP): ../generate_taskfunction.py ../grouping_config.py \
+          ../newimpl_face_flux.boundaries.json
+	PYTHONPATH=$(RECIPE_PYTHONPATH) $(PYTHON) ../generate_taskfunction.py \
+	  $(NEWIMPL_SOURCE) $(MILHOJA_PREFIX) $(GENERATED) \
+	  --layout $(LAYOUT) --grouping $(GROUPING) --overwrite
+	touch $(STAMP)
+
+regenerate:
+	PYTHONPATH=$(RECIPE_PYTHONPATH) $(PYTHON) ../generate_taskfunction.py \
+	  $(NEWIMPL_SOURCE) $(MILHOJA_PREFIX) $(GENERATED) \
+	  --layout $(LAYOUT) --grouping $(GROUPING) --overwrite
+	touch $(STAMP)
 
 run: $(TARGET)
 	$(TARGET)
+
+run-matrix:
+	$(MAKE) run LAYOUT=variable-last GROUPING=fully_fused
+	$(MAKE) run LAYOUT=variable-last GROUPING=flattening_then_directional
+	$(MAKE) run LAYOUT=variable-last GROUPING=flattening_reconstruction_solve
+	$(MAKE) run LAYOUT=variable-first GROUPING=fully_fused
+	$(MAKE) run LAYOUT=variable-first GROUPING=flattening_then_directional
+	$(MAKE) run LAYOUT=variable-first GROUPING=flattening_reconstruction_solve
+
+$(GENERATED)/newimpl_face_flux_milhoja.F90 \
+$(GENERATED)/newimpl_face_flux_adapter_mod.F90 \
+$(GENERATED)/newimpl_face_flux_tf_mod.F90 \
+$(GENERATED)/newimpl_face_flux_tf_C2F.F90 \
+$(GENERATED)/DataPacket_newimpl_face_flux_tf.cxx \
+$(GENERATED)/newimpl_face_flux_tf.cxx: $(STAMP)
 
 $(BUILD):
 	mkdir -p $(BUILD)

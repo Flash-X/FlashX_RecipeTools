@@ -161,6 +161,15 @@ def test_valid_boundary_contract_declares_fused_and_split_groupings():
     contract = make_contract()
     assert contract.name == "test_boundaries"
     assert contract.legal_grouping_names == ("fused", "split")
+    assert contract.legal_grouping("split")["kernel_groups"] == [
+        ["prepare"],
+        ["finish"],
+    ]
+
+
+def test_unknown_legal_grouping_is_rejected():
+    with pytest.raises(KernelBoundaryContractError, match="Unknown legal grouping"):
+        make_contract().legal_grouping("unknown")
 
 
 def test_operation_order_must_match_arithmetic_contract():

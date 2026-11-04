@@ -159,6 +159,71 @@ class ComputationSourceGenerator:
             overwrite,
         )
 
+    def generate_derived(
+        self,
+        source_root,
+        layout_binding,
+        output,
+        source_transform,
+        unit_kind,
+        unit_name,
+        overwrite=False,
+    ):
+        """Expand a deterministic application transform of contracted arithmetic.
+
+        ``source_transform`` receives the exact, checksum-verified arithmetic
+        source text.  This deliberately supplies no parser or inferred
+        dependency information: the application owns both the transformation
+        and the metadata that establishes its legality.
+        """
+        if not callable(source_transform):
+            raise TypeError("source_transform must be callable")
+        if unit_kind.lower() not in {"module", "program", "subroutine", "function"}:
+            raise ComputationSourceGenerationError(
+                "Unsupported derived program unit kind {!r}".format(unit_kind)
+            )
+
+        source_paths = self.contract.verify_sources(source_root)
+        try:
+            source_text = source_paths["arithmetic"].read_text(encoding="utf-8")
+        except OSError as exc:
+            raise ComputationSourceGenerationError(
+                "Unable to read contracted arithmetic {!s}: {}".format(
+                    source_paths["arithmetic"], exc
+                )
+            ) from exc
+        derived_text = source_transform(source_text)
+        if not isinstance(derived_text, str) or not derived_text.strip():
+            raise ComputationSourceGenerationError(
+                "source_transform must return nonempty source text"
+            )
+
+        temporary = tempfile.NamedTemporaryFile(
+            prefix=".{}-derived-".format(Path(output).name),
+            suffix=".F90-mc",
+            mode="w",
+            encoding="utf-8",
+            delete=False,
+        )
+        temporary_path = Path(temporary.name)
+        try:
+            temporary.write(derived_text)
+            temporary.close()
+            return self._expand(
+                source_paths,
+                temporary_path,
+                Path(layout_binding).resolve(),
+                Path(output).resolve(),
+                unit_kind.lower(),
+                unit_name,
+                overwrite,
+            )
+        finally:
+            if not temporary.closed:
+                temporary.close()
+            if temporary_path.exists():
+                temporary_path.unlink()
+
     def generate_auxiliary(
         self,
         source_root,

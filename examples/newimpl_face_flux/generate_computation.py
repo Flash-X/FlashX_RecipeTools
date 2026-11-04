@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Generate the validated NewImpl face-flux computation for Milhoja HOSTMEM."""
+"""Generate a validated grouped NewImpl face-flux computation."""
 
 import argparse
 
 from pathlib import Path
 
-from FlashX_RecipeTools import ArithmeticHelperContract, ComputationSourceGenerator
+from FlashX_RecipeTools import ComputationSourceGenerator, KernelBoundaryContract
+from grouping_config import FULLY_FUSED, grouped_arithmetic_transform
 from layout_config import LAYOUT_CHOICES, VARIABLE_LAST, layout_binding
 
 
@@ -24,6 +25,16 @@ def main():
         "--layout", choices=LAYOUT_CHOICES, default=VARIABLE_LAST,
         help="component ordering for generated field views",
     )
+    boundaries = KernelBoundaryContract.load(
+        HERE / "newimpl_face_flux.boundaries.json",
+        HERE / "newimpl_face_flux.contract.json",
+    )
+    parser.add_argument(
+        "--grouping",
+        choices=boundaries.legal_grouping_names,
+        default=FULLY_FUSED,
+        help="validated kernel grouping to lower",
+    )
     parser.add_argument(
         "--overwrite",
         action="store_true",
@@ -31,15 +42,28 @@ def main():
     )
     args = parser.parse_args()
 
-    contract = ArithmeticHelperContract.load(HERE / "newimpl_face_flux.contract.json")
+    contract = boundaries.arithmetic_contract
     generator = ComputationSourceGenerator(contract)
-    output = generator.generate(
-        args.newimpl_source,
-        layout_binding(HERE, args.layout),
-        args.output,
-        overwrite=args.overwrite,
-    )
-    print("Generated {} from validated {}".format(output, contract.name))
+    if args.grouping == FULLY_FUSED:
+        output = generator.generate(
+            args.newimpl_source,
+            layout_binding(HERE, args.layout),
+            args.output,
+            overwrite=args.overwrite,
+        )
+    else:
+        output = generator.generate_derived(
+            args.newimpl_source,
+            layout_binding(HERE, args.layout),
+            args.output,
+            grouped_arithmetic_transform(args.grouping),
+            "module",
+            "newimpl_hydro",
+            overwrite=args.overwrite,
+        )
+    print("Generated {} from validated {} using {}".format(
+        output, contract.name, args.grouping
+    ))
 
 
 if __name__ == "__main__":

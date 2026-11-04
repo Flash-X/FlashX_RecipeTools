@@ -114,6 +114,7 @@ then produces:
 
 - `newimpl_face_flux.taskfunction.json`, the assembled TaskFunction specification
 - `newimpl_face_flux.mapping.json`, the contract-to-TaskFunction binding
+- `newimpl_face_flux.grouping.json`, the validated kernel-grouping selection
 - `DataPacket_newimpl_face_flux_tf.{h,cxx}` and its Fortran construction module
 - `newimpl_face_flux_tf.cxx`, the C++ runtime wrapper
 - `newimpl_face_flux_tf_C2F.F90`, the C-to-Fortran interface
@@ -265,3 +266,60 @@ The approved candidates are `fully_fused`,
 `flattening_then_directional`, and `flattening_reconstruction_solve`. They all
 retain one TaskFunction and one resident DataPacket. This step does not select
 a grouping or generate split kernels; those changes belong to Step 8.
+
+## Step 8 recipe-controlled kernel grouping
+
+TaskFunction generation now accepts one of the groupings validated by Step 7:
+
+```sh
+python generate_taskfunction.py \
+  /path/to/Flash-X/source/physics/Hydro/HydroMain/Spark/NewImpl \
+  /path/to/Milhoja/2D-hostmem \
+  generated/taskfunction-split \
+  --layout variable-last \
+  --grouping flattening_reconstruction_solve
+```
+
+The choices are `fully_fused`, `flattening_then_directional`, and
+`flattening_reconstruction_solve`. The default remains `fully_fused`.
+Generation first validates the boundary contract, arithmetic-contract checksum,
+and NewImpl source hashes. Split variants are derived deterministically from
+checked anchors in the unchanged application source; no general Fortran parser,
+dependency inference, or compiler IR is introduced.
+
+Every selection retains one Milhoja TaskFunction and the same DataPacket.
+The generated TaskFunction call graph contains one ordered entry per selected
+group (and per direction where directional scratch is reused), so Milhoja's
+OpenACC generator can lower the same graph to separate launches on one stream.
+Flattening scratch remains live for the stage, while reconstructed minus/plus
+scratch is consumed before the next direction overwrites it. Status checks stop
+later groups after failure, and the original serial `max_speed` update is
+unchanged.
+
+Run all six host scientific combinations (three groupings by two layouts) with:
+
+```sh
+PYTHONPATH=src python examples/newimpl_face_flux/verify_groupings.py \
+  /path/to/Flash-X/source/physics/Hydro/HydroMain/Spark/NewImpl
+```
+
+Run deterministic TaskFunction/DataPacket generation checks with:
+
+```sh
+PYTHONPATH=src python examples/newimpl_face_flux/verify_taskfunction.py \
+  /path/to/Flash-X/source/physics/Hydro/HydroMain/Spark/NewImpl \
+  /path/to/Milhoja/2D-hostmem
+```
+
+The HOSTMEM runtime matrix can be built from `runtime_test`:
+
+```sh
+make run-matrix \
+  MILHOJA_PREFIX=/path/to/Milhoja/2D-hostmem \
+  NEWIMPL_SOURCE=/path/to/Flash-X/source/physics/Hydro/HydroMain/Spark/NewImpl
+```
+
+This step establishes and verifies recipe-controlled computational entry-point
+decomposition. It does not claim that the current derived-type NewImpl adapter
+is already a CUDA/OpenACC device kernel; the separately verified Milhoja
+CUDA/OpenACC pointer round trip remains the device-interoperability baseline.

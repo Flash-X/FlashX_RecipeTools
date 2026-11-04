@@ -65,6 +65,17 @@ class KernelBoundaryContract:
     def legal_grouping_names(self):
         return tuple(grouping["name"] for grouping in self.data["legal_groupings"])
 
+    def legal_grouping(self, name):
+        """Return the validated declaration for one named grouping."""
+        for grouping in self.data["legal_groupings"]:
+            if grouping["name"] == name:
+                return grouping
+        raise KernelBoundaryContractError(
+            "Unknown legal grouping {!r}; expected one of {}".format(
+                name, ", ".join(self.legal_grouping_names)
+            )
+        )
+
     def validate(self):
         root = self._mapping(self.data, "boundary contract")
         self._check_keys(

@@ -49,7 +49,7 @@ consumer starts.
 
 ## Legal grouping candidates
 
-The declaration approves exactly three candidates for later Step 8 selection:
+The declaration approves exactly three candidates for Step 8 selection:
 
 1. `fully_fused`: flattening, the reference direction loop, reconstruction,
    and face solving remain in one kernel.
@@ -59,17 +59,19 @@ The declaration approves exactly three candidates for later Step 8 selection:
    direction by a reconstruction kernel and then a face-solve kernel.
 
 All candidates remain inside one Milhoja TaskFunction and one resident
-DataPacket. Step 7 only declares and validates them; it does not generate the
-split implementations.
+DataPacket. Step 7 declares and validates them; Step 8's
+`generate_taskfunction.py --grouping` option lowers the selected implementation.
 
 ## Numerical and failure constraints
 
 - `max_speed` keeps identity zero, the `max` operator, the same candidate set,
   direction order, face order, and NaN behavior. A reassociated parallel
   reduction is not legal.
-- The first failure stops later faces, directions, and kernel groups. The same
-  `failed_face` is retained, and partial results are not committed when the
-  arithmetic contract says not to commit them.
+- The first failure stops later face and direction arithmetic. A later entry
+  in a statically generated call graph may be launched, but it must inspect
+  status and return before numerical work. The same `failed_face` is retained,
+  and partial results are not committed when the arithmetic contract says not
+  to commit them.
 - All directions cannot be reconstructed before solving because the minus and
   plus arrays are directionally reused.
 - Directions cannot execute concurrently with the current scratch contract.

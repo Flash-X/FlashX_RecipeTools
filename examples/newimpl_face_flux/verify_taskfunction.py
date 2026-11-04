@@ -11,7 +11,8 @@ import tempfile
 
 from pathlib import Path
 
-from FlashX_RecipeTools import ArithmeticHelperContract
+from FlashX_RecipeTools import ArithmeticHelperContract, KernelBoundaryContract
+from grouping_config import adapter_names
 from layout_config import LAYOUT_CHOICES, VARIABLE_FIRST
 from verify_layout_transforms import verify_layout_transforms
 
@@ -29,6 +30,7 @@ EXPECTED_FILES = {
     "cg-tpl.outer_DataPacket_newimpl_face_flux_tf_cpp2c.cpp",
     "newimpl_face_flux.grid.json",
     "newimpl_face_flux.group.json",
+    "newimpl_face_flux.grouping.json",
     "newimpl_face_flux.mapping.json",
     "newimpl_face_flux.partial.json",
     "newimpl_face_flux.taskfunction.json",
@@ -40,7 +42,7 @@ EXPECTED_FILES = {
 }
 
 
-def _generate(source, prefix, destination, seed, layout):
+def _generate(source, prefix, destination, seed, layout, grouping):
     environment = os.environ.copy()
     environment["PYTHONHASHSEED"] = str(seed)
     subprocess.run(
@@ -52,6 +54,8 @@ def _generate(source, prefix, destination, seed, layout):
             str(destination),
             "--layout",
             layout,
+            "--grouping",
+            grouping,
         ],
         check=True,
         env=environment,
@@ -93,7 +97,7 @@ def _assert_equal_directories(first, second):
         )
 
 
-def _verify_specification(output, layout):
+def _verify_specification(output, layout, grouping):
     specification = json.loads(
         (output / "newimpl_face_flux.taskfunction.json").read_text()
     )
@@ -103,7 +107,9 @@ def _verify_specification(output, layout):
 
     assert task["processor"] == "CPU"
     assert task["computation_offloading"] == ""
-    assert task["subroutine_call_graph"] == ["newimpl_face_flux_adapter"]
+    assert task["subroutine_call_graph"] == list(
+        adapter_names(grouping["name"])
+    )
     assert data_item["type"] == "DataPacket"
     assert data_item["byte_alignment"] == 16
     assert data_item["data_layout"] == layout
@@ -115,6 +121,16 @@ def _verify_specification(output, layout):
         "packet": layout,
         "tile_source": "variable-last",
     }
+    assert mapping["kernel_grouping"]["name"] == grouping["name"]
+    assert mapping["kernel_grouping"]["kernel_groups"] == grouping["kernel_groups"]
+    assert mapping["kernel_grouping"]["cuts"] == grouping["cuts"]
+
+    selection = json.loads(
+        (output / "newimpl_face_flux.grouping.json").read_text()
+    )
+    assert selection["boundary_contract"] == "newimpl_face_flux_boundaries"
+    assert selection["arithmetic_contract"] == "newimpl_face_flux"
+    assert selection["selection"] == grouping
 
     expected_grid = {
         "CC_1": ("CENTER", [1, 8], None),
@@ -192,6 +208,36 @@ def _verify_host_sources(output):
                 raise AssertionError("{} contains {!r}".format(path.name, token))
 
 
+def _verify_grouped_sources(output, grouping):
+    computation = (output / "newimpl_face_flux_milhoja.F90").read_text()
+    adapter = (output / "newimpl_face_flux_adapter_mod.F90").read_text()
+    name = grouping["name"]
+    assert computation.count("subroutine hy_getFaceFlux(") == 1
+    if name == "fully_fused":
+        assert "subroutine hy_faceFluxFlattening(" not in computation
+        assert "call hy_getFaceFlux(" in adapter
+    elif name == "flattening_then_directional":
+        assert computation.count("subroutine hy_faceFluxFlattening(") == 1
+        assert computation.count("subroutine hy_faceFluxDirectional(") == 1
+        assert "subroutine hy_faceFluxReconstructDirection(" not in computation
+        assert adapter.index("call hy_faceFluxFlattening(") < adapter.index(
+            "call hy_faceFluxDirectional("
+        )
+    elif name == "flattening_reconstruction_solve":
+        assert computation.count("subroutine hy_faceFluxFlattening(") == 1
+        assert computation.count("subroutine hy_faceFluxReconstructDirection(") == 1
+        assert computation.count("subroutine hy_faceFluxSolveDirection(") == 1
+        flattening = adapter.index("call hy_faceFluxFlattening(")
+        reconstruction = adapter.index("call hy_faceFluxReconstructDirection(")
+        solve = adapter.index("call hy_faceFluxSolveDirection(")
+        assert flattening < reconstruction < solve
+    else:
+        raise AssertionError("Unexpected grouping {!r}".format(name))
+
+    if name != "fully_fused":
+        assert "if (status/=HY_OK .or. direction<1" in computation
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("newimpl_source", type=Path)
@@ -202,33 +248,44 @@ def main():
         HERE / "newimpl_face_flux.contract.json"
     )
     contract.verify_sources(args.newimpl_source)
+    boundaries = KernelBoundaryContract.load(
+        HERE / "newimpl_face_flux.boundaries.json",
+        HERE / "newimpl_face_flux.contract.json",
+    )
     verify_layout_transforms()
 
     for layout in LAYOUT_CHOICES:
-        with tempfile.TemporaryDirectory(
-                prefix="newimpl-layout-a-") as first_name, \
-                tempfile.TemporaryDirectory(
-                    prefix="newimpl-layout-b-") as second_name:
-            first = Path(first_name)
-            second = Path(second_name)
-            _generate(
-                args.newimpl_source, args.milhoja_prefix, first, 1, layout
-            )
-            _generate(
-                args.newimpl_source, args.milhoja_prefix, second, 777, layout
-            )
+        for grouping_name in boundaries.legal_grouping_names:
+            grouping = boundaries.legal_grouping(grouping_name)
+            with tempfile.TemporaryDirectory(
+                    prefix="newimpl-layout-a-") as first_name, \
+                    tempfile.TemporaryDirectory(
+                        prefix="newimpl-layout-b-") as second_name:
+                first = Path(first_name)
+                second = Path(second_name)
+                _generate(
+                    args.newimpl_source, args.milhoja_prefix, first, 1,
+                    layout, grouping_name,
+                )
+                _generate(
+                    args.newimpl_source, args.milhoja_prefix, second, 777,
+                    layout, grouping_name,
+                )
 
-            actual_files = {
-                path.name for path in first.iterdir() if path.is_file()
-            }
-            assert actual_files == EXPECTED_FILES
-            _verify_specification(first, layout)
-            _verify_layout_sources(first, layout)
-            _verify_host_sources(first)
-            _assert_equal_directories(first, second)
-            _verify_standalone_generation(args.newimpl_source, first, layout)
+                actual_files = {
+                    path.name for path in first.iterdir() if path.is_file()
+                }
+                assert actual_files == EXPECTED_FILES
+                _verify_specification(first, layout, grouping)
+                _verify_layout_sources(first, layout)
+                _verify_host_sources(first)
+                _verify_grouped_sources(first, grouping)
+                _assert_equal_directories(first, second)
+                _verify_standalone_generation(
+                    args.newimpl_source, first, layout
+                )
 
-    print("NewImpl HOSTMEM dual-layout generation verification passed")
+    print("NewImpl HOSTMEM layout/grouping generation verification passed")
 
 
 if __name__ == "__main__":
